@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Records - Sudan Assessment Registry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --ocha-blue: #007ce0;
+            --ocha-dark-blue: #0056b3;
+            --ocha-light-blue: #e6f3ff;
+        }
+        
+        .navbar-brand {
+            color: var(--ocha-blue) !important;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: var(--ocha-blue);
+            border-color: var(--ocha-blue);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--ocha-dark-blue);
+            border-color: var(--ocha-dark-blue);
+        }
+        
+        .card-header {
+            background-color: var(--ocha-light-blue);
+            border-bottom: 2px solid var(--ocha-blue);
+        }
+        
+        .stats-card {
+            border-left: 4px solid var(--ocha-blue);
+        }
+        
+        .alert-info {
+            background-color: var(--ocha-light-blue);
+            border-color: var(--ocha-blue);
+            color: var(--ocha-dark-blue);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--ocha-dark-blue);
+        }
+        
+        .table-responsive {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .table th {
+            background-color: var(--ocha-light-blue);
+            color: var(--ocha-dark-blue);
+            font-weight: 600;
+            border-bottom: 2px solid var(--ocha-blue);
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge-country {
+            background-color: var(--ocha-blue);
+            color: white;
+        }
+        
+        .badge-format {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .badge-source {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .text-truncate-custom {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .btn-sm {
+            font-size: 0.75rem;
+        }
+        
+        .search-box {
+            background-color: var(--ocha-light-blue);
+            border: 1px solid var(--ocha-blue);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-globe"></i> Sudan Assessment Registry
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a>
+                <a class="nav-link active" href="/metadata"><i class="fas fa-database"></i> View Records</a>
+                <a class="nav-link" href="/manage"><i class="fas fa-cogs"></i> Manage</a>
+                <a class="nav-link" href="/api/fields"><i class="fas fa-code"></i> API Reference</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="mb-0"><i class="fas fa-database"></i> Assessment Records</h2>
+                        <p class="mb-0 text-muted">View and manage extracted humanitarian assessment data</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted">Total Records: <strong>{{ data|length }}</strong></span>
+                    </div>
+                    <div>
+                        <a href="/download/metadata?format=csv" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fas fa-download"></i> Download CSV
+                        </a>
+                        <a href="/download/metadata?format=excel" class="btn btn-outline-success btn-sm me-2">
+                            <i class="fas fa-file-excel"></i> Download Excel
+                        </a>
+                        <a href="/" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Extract New Records
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="search-box">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search titles, countries, sources...">
+                        </div>
+                        <div class="col-md-3">
+                            <select id="countryFilter" class="form-select">
+                                <option value="">All Countries</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="formatFilter" class="form-select">
+                                <option value="">All Formats</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        {% if data %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="dataTable">
+                        <thead>
+                            <tr>
+                                <th width="5%">#</th>
+                                <th width="30%">Title</th>
+                                <th width="12%">Country</th>
+                                <th width="15%">Source</th>
+                                <th width="10%">Format</th>
+                                <th width="10%">Date</th>
+                                <th width="8%">Theme</th>
+                                <th width="10%">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in data %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <div class="text-truncate-custom" title="{{ record.title }}">
+                                        <strong>{{ record.title }}</strong>
+                                    </div>
+                                    {% if record.body %}
+                                    <small class="text-muted">
+                                        {{ record.body[:100] }}{% if record.body|length > 100 %}...{% endif %}
+                                    </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.primary_country %}
+                                    <span class="badge badge-country mb-1">{{ record.primary_country }}</span>
+                                    {% endif %}
+                                    {% if record.country and record.country != record.primary_country %}
+                                    <br><small class="text-muted">+ {{ record.country[:30] }}{% if record.country|length > 30 %}...{% endif %}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-source">{{ record.source[:20] }}{% if record.source|length > 20 %}...{% endif %}</span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-format">{{ record.format }}</span>
+                                </td>
+                                <td>
+                                    <small>{{ record.date_created[:10] if record.date_created else 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ record.theme[:20] if record.theme else 'N/A' }}{% if record.theme and record.theme|length > 20 %}...{% endif %}</small>
+                                </td>
+                                <td>
+                                    {% if record.url %}
+                                    <a href="{{ record.url }}" target="_blank" class="btn btn-outline-primary btn-sm" title="View Original">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                    {% endif %}
+                                    <button class="btn btn-outline-info btn-sm" onclick="viewDetails({{ record.id }})" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination Info -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Showing <span id="recordCount">{{ data|length }}</span> records
+                    </small>
+                    <small class="text-muted">
+                        Last updated: <span id="lastUpdated"></span>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- No Data State -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h5>No Assessment Records Found</h5>
+                    <p class="mb-3">You haven't extracted any assessment data yet.</p>
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Extract Your First Assessments
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-info-circle"></i> Assessment Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize filters and set current date
+        document.addEventListener('DOMContentLoaded', function() {
+            populateFilters();
+            setupSearch();
+            setLastUpdated();
+        });
+
+        function setLastUpdated() {
+            const now = new Date();
+            const formatted = now.getFullYear() + '-' + 
+                             String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                             String(now.getDate()).padStart(2, '0') + ' ' + 
+                             String(now.getHours()).padStart(2, '0') + ':' + 
+                             String(now.getMinutes()).padStart(2, '0');
+            
+            const lastUpdatedElement = document.getElementById('lastUpdated');
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = formatted;
+            }
+        }
+
+        function populateFilters() {
+            const table = document.getElementById('dataTable');
+            if (!table) return;
+
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            const countries = new Set();
+            const formats = new Set();
+
+            for (let row of rows) {
+                const countryCell = row.cells[2];
+                const formatCell = row.cells[4];
+                
+                if (countryCell) {
+                    const countryBadge = countryCell.querySelector('.badge-country');
+                    if (countryBadge) countries.add(countryBadge.textContent.trim());
+                }
+                
+                if (formatCell) {
+                    const formatBadge = formatCell.querySelector('.badge-format');
+                    if (formatBadge) formats.add(formatBadge.textContent.trim());
+                }
+            }
+
+            // Populate country filter
+            const countryFilter = document.getElementById('countryFilter');
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countryFilter.appendChild(option);
+            });
+
+            // Populate format filter
+            const formatFilter = document.getElementById('formatFilter');
+            formats.forEach(format => {
+                const option = document.createElement('option');
+                option.value = format;
+                option.textContent = format;
+                formatFilter.appendChild(option);
+            });
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const countryFilter = document.getElementById('countryFilter');
+            const formatFilter = document.getElementById('formatFilter');
+
+            if (searchInput) searchInput.addEventListener('input', filterTable);
+            if (countryFilter) countryFilter.addEventListener('change', filterTable);
+            if (formatFilter) formatFilter.addEventListener('change', filterTable);
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const countryFilter = document.getElementById('countryFilter').value;
+            const formatFilter = document.getElementById('formatFilter').value;
+            
+            const table = document.getElementById('dataTable');
+            if (!table) return;
+
+            const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+            let visibleCount = 0;
+
+            for (let row of rows) {
+                const title = row.cells[1].textContent.toLowerCase();
+                const country = row.cells[2].textContent;
+                const source = row.cells[3].textContent.toLowerCase();
+                const format = row.cells[4].textContent;
+
+                const matchesSearch = title.includes(searchTerm) || 
+                                    country.toLowerCase().includes(searchTerm) || 
+                                    source.includes(searchTerm);
+                const matchesCountry = !countryFilter || country.includes(countryFilter);
+                const matchesFormat = !formatFilter || format.includes(formatFilter);
+
+                if (matchesSearch && matchesCountry && matchesFormat) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+
+            // Update record count
+            const recordCount = document.getElementById('recordCount');
+            if (recordCount) {
+                recordCount.textContent = visibleCount;
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('countryFilter').value = '';
+            document.getElementById('formatFilter').value = '';
+            filterTable();
+        }
+
+        function viewDetails(recordId) {
+            fetch(`/manage/record/${recordId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const record = data.record;
+                        const modalBody = document.getElementById('modalBody');
+                        
+                        modalBody.innerHTML = `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Report ID:</strong> ${record.report_id || 'N/A'}<br>
+                                    <strong>Primary Country:</strong> ${record.primary_country || 'N/A'}<br>
+                                    <strong>Source:</strong> ${record.source || 'N/A'}<br>
+                                    <strong>Format:</strong> ${record.format || 'N/A'}<br>
+                                    <strong>Language:</strong> ${record.language || 'N/A'}<br>
+                                    <strong>Date Created:</strong> ${record.date_created ? record.date_created.substring(0, 10) : 'N/A'}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Theme:</strong> ${record.theme || 'N/A'}<br>
+                                    <strong>Status:</strong> ${record.status || 'N/A'}<br>
+                                    <strong>All Countries:</strong> ${record.country || 'N/A'}<br>
+                                    <strong>Disaster:</strong> ${record.disaster || 'N/A'}<br>
+                                    <strong>URL:</strong> ${record.url ? `<a href="${record.url}" target="_blank">View Original</a>` : 'N/A'}
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>Title:</strong><br>
+                                    <p>${record.title || 'N/A'}</p>
+                                    
+                                    <strong>Summary:</strong><br>
+                                    <p style="max-height: 200px; overflow-y: auto;">${record.body || 'No summary available'}</p>
+                                    
+                                    ${record.file_info ? `<strong>Files:</strong><br><p>${record.file_info}</p>` : ''}
+                                </div>
+                            </div>
+                        `;
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+                        modal.show();
+                    } else {
+                        alert('Error loading record details: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading record details');
+                });
+        }
+    </script>
+</body>
+</html>
