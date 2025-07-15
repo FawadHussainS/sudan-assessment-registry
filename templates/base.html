@@ -4,10 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Assessment Extractor - OCHA{% endblock %}</title>
-    
+
+    <style>
+
+        :root {
+            --ocha-blue: #007ce0;
+            --ocha-dark-blue: #005a9c;
+            --ocha-light-blue: #e6f3ff;
+            --ocha-orange: #f39c12;
+            --ocha-red: #dc3545;
+            --ocha-green: #28a745;
+            --ocha-gray: #6c757d;
+            --ocha-light-gray: #f8f9fa;
+            --ocha-border: #dee2e6;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+        }
+        /* Ensure navigation menu text is always white */
+        .nav-link, .nav-link:visited, .nav-link:active, .nav-link:focus, .nav-icon {
+            color: #fff !important;
+            font-weight: normal;
+        }
+        .nav-link:hover {
+            color: #fff;
+        }
+        /* Align nav menu width and position to match main content */
+        .nav {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+        }
+        .nav .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-left: 0;
+            padding-right: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .header-main .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-left: 0;
+            padding-right: 20px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            background: transparent;
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            margin-left: 0;
+        }
+    </style>
     <!-- Central CSS File -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
+
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -46,13 +103,13 @@
                 <ul class="nav-list" id="navList">
                     <li class="nav-item">
                         <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
-                            <span class="nav-icon">▣</span>
+                            <span class="nav-icon">⌂</span>
                             Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{{ url_for('view_metadata') }}" class="nav-link {% if request.endpoint == 'view_metadata' %}active{% endif %}">
-                            <span class="nav-icon">☰</span>
+                            <span class="nav-icon">▦</span>
                             View Records
                         </a>
                     </li>
@@ -70,7 +127,7 @@
                     </li>
                     <li class="nav-item">
                         <a href="{{ url_for('download_metadata') }}?format=excel" class="nav-link">
-                            <span class="nav-icon">≣</span>
+                            <span class="nav-icon">≡</span>
                             Download Excel
                         </a>
                     </li>
