@@ -6,6 +6,9 @@ from io import StringIO, BytesIO
 import os
 import logging
 import sqlite3
+from collections import Counter
+from flask import render_template
+from datetime import datetime, timedelta
 
 # Configure logging with UTF-8 support
 logging.basicConfig(
@@ -35,7 +38,7 @@ init_db(DB_PATH)
 # Get filter options (cache these for better performance)
 try:
     FILTER_OPTIONS = get_filter_options()
-    logger.info(f"Loaded filter options: {len(FILTER_OPTIONS.get('countries', []))} countries, {len(FILTER_OPTIONS.get('formats', []))} formats")
+    logger.info(f"Loaded filter options: {FILTER_OPTIONS}")
 except Exception as e:
     logger.error(f"Failed to load filter options: {e}")
     FILTER_OPTIONS = {
@@ -170,7 +173,68 @@ def manage_database():
         db_stats = {}
         data = []
     
-    return render_template("manage.html", db_stats=db_stats, data=data, filter_options=FILTER_OPTIONS)
+    # Fetch all records from your database
+    records = get_all_metadata(DB_PATH)  # Replace with your actual DB fetch
+
+    # Calculate statistics
+    total_records = len(records)
+    all_countries = []
+    all_sources = []
+    for r in records:
+        if r.get('country'):
+            all_countries.extend([c.strip() for c in r['country'].replace(',', ';').split(';') if c.strip()])
+        if r.get('source'):
+            all_sources.extend([s.strip() for s in r['source'].split(',') if s.strip()])
+
+    # DEBUG: Log raw country/source lists and counts
+    logger.info(f"Sample all_countries: {all_countries[:10]}")
+    logger.info(f"Sample all_sources: {all_sources[:10]}")
+    logger.info(f"Country counts: {Counter(all_countries).most_common(10)}")
+    logger.info(f"Source counts: {Counter(all_sources).most_common(10)}")
+
+    unique_countries = set(all_countries)
+    unique_sources = set(all_sources)
+
+    # Top 5 countries and sources by count
+    country_counts = Counter(all_countries)
+    source_counts = Counter(all_sources)
+
+    top_5_countries = country_counts.most_common(5)
+    top_5_sources = source_counts.most_common(5)
+
+    # Calculate percentages
+    top_5_countries_pct = [
+        {"name": name, "count": count, "pct": round((count / total_records) * 100, 1) if total_records else 0}
+        for name, count in top_5_countries
+    ]
+    top_5_sources_pct = [
+        {"name": name, "count": count, "pct": round((count / total_records) * 100, 1) if total_records else 0}
+        for name, count in top_5_sources
+    ]
+
+    # Last 7 days
+    now = datetime.utcnow()
+    last_7_days = sum(
+        1 for r in records
+        if r.get('date_created') and
+        datetime.strptime(r['date_created'][:10], '%Y-%m-%d') >= now - timedelta(days=7)
+    )
+
+    db_stats = {
+        "total_records": total_records,
+        "unique_countries": len(unique_countries),
+        "unique_sources": len(unique_sources),
+        "last_7_days": last_7_days,
+        "top_5_countries": top_5_countries_pct,
+        "top_5_sources": top_5_sources_pct,
+    }
+
+    return render_template(
+        "manage.html",
+        db_stats=db_stats,
+        filter_options=FILTER_OPTIONS,
+        data=records
+    )
 
 @app.route("/manage/delete_record", methods=["POST"])
 def delete_single_record():
