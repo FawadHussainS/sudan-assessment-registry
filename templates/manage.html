@@ -4,107 +4,17 @@
 
 {% block extra_head %}
     <style>
-        /* Use the same dashboard and form styles as index.html */
-        .management-section {
-            background: var(--ocha-light-gray);
-            padding: 24px;
-            border-radius: 8px;
-            margin: 24px 0;
-            border: 1px solid var(--ocha-border);
-            box-shadow: var(--shadow);
-        }
-        .management-section.search-section {
-            background: var(--ocha-light-blue);
-            border-left: 4px solid var(--ocha-blue);
-        }
-        .management-section.danger-zone {
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-left: 4px solid var(--ocha-red);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 25px;
-        }
-        .stat-card {
-            background: white;
-            padding: 18px 16px;
-            border-radius: 6px;
-            border-left: 4px solid var(--ocha-blue);
-            box-shadow: var(--shadow);
-            text-align: center;
-            transition: transform 0.2s ease;
-            min-height: 80px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-        .stat-number {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--ocha-blue);
-            display: block;
-            margin-bottom: 4px;
-            line-height: 1;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            line-height: 1.2;
-        }
-        .form-row, .form-row-3, .form-row-2 {
-            display: grid;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .form-row { grid-template-columns: 1fr 1fr; }
-        .form-row-2 { grid-template-columns: 1fr 1fr; }
-        .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-        .form-control, .form-select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--ocha-border);
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.2s ease;
-        }
-        .form-control:focus, .form-select:focus {
-            outline: none;
-            border-color: var(--ocha-blue);
-            box-shadow: 0 0 0 2px rgba(0, 124, 224, 0.1);
-        }
         .btn {
             background-color: var(--ocha-blue);
             color: white;
-            padding: 10px 16px;
             border: none;
+            padding: 8px 16px;
             border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
             cursor: pointer;
+            text-decoration: none;
             display: inline-block;
-            margin-right: 12px;
-            transition: background-color 0.2s;
+            font-size: 14px;
+            transition: background-color 0.3s;
         }
         .btn:hover { background-color: var(--ocha-dark-blue); }
         .btn-sm { padding: 6px 12px; font-size: 12px; margin-right: 6px; }
@@ -112,61 +22,202 @@
         .btn-danger:hover { background-color: #c82333; }
         .btn-secondary { background-color: var(--ocha-gray); }
         .btn-secondary:hover { background-color: #545b62; }
-        .bulk-actions {
-            background: var(--ocha-light-gray);
-            padding: 16px;
-            border-radius: 4px;
-            margin: 16px 0;
+        
+        /* Enhanced dropdown styles */
+        .form-select {
+            width: 100%;
+            padding: 8px 12px;
             border: 1px solid var(--ocha-border);
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+            color: var(--text-primary);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 8px center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            cursor: pointer;
+        }
+        
+        .form-select:focus {
+            outline: none;
+            border-color: var(--ocha-blue);
+            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+        }
+        
+        .dropdown-container {
+            position: relative;
+        }
+        
+        .dropdown-search {
+            position: relative;
+            margin-bottom: 8px;
+        }
+        
+        .dropdown-search input {
+            width: 100%;
+            padding: 8px 32px 8px 12px;
+            border: 1px solid var(--ocha-border);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .dropdown-search .search-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+        
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+        
+        .dropdown-toggle {
+            width: 100%;
+            padding: 8px 32px 8px 12px;
+            border: 1px solid var(--ocha-border);
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dropdown-toggle:focus {
+            outline: none;
+            border-color: var(--ocha-blue);
+            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+        }
+        
+        .dropdown-arrow {
+            transition: transform 0.3s ease;
+        }
+        
+        .dropdown-toggle.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--ocha-border);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
             display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dropdown-menu.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f1f3f4;
+            transition: background-color 0.2s;
+        }
+        
+        .dropdown-item:hover {
+            background-color: var(--ocha-light-blue);
+        }
+        
+        .dropdown-item.selected {
+            background-color: var(--ocha-blue);
+            color: white;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .country-count {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: auto;
+        }
+        
+        .multiple-selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        
+        .selection-tag {
+            background: var(--ocha-blue);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .selection-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .bulk-actions {
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border-left: 4px solid var(--ocha-blue);
         }
         .bulk-actions.show { display: block; }
         .warning-text {
             color: var(--ocha-red);
-            font-weight: 500;
-            margin: 12px 0;
+            font-weight: 600;
         }
         .records-container {
             background: white;
-            border-radius: 6px;
-            overflow: hidden;
-            border: 1px solid var(--ocha-border);
-            margin: 20px 0;
+            border-radius: 8px;
+            padding: 24px;
             box-shadow: var(--shadow);
         }
         .table-controls {
-            padding: 16px;
-            background: var(--ocha-light-gray);
-            border-bottom: 1px solid var(--ocha-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
+            margin-bottom: 16px;
             gap: 16px;
         }
         .pagination-info {
-            font-size: 14px;
             color: var(--text-secondary);
+            font-size: 14px;
         }
         .table-wrapper {
             overflow-x: auto;
-            max-height: 600px;
             overflow-y: auto;
+            max-height: 600px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
-            background: white;
-            border-radius: 6px;
-            overflow: hidden;
             box-shadow: var(--shadow);
         }
         th, td {
-            padding: 12px 8px;
+            padding: 12px;
             text-align: left;
             border-bottom: 1px solid var(--ocha-border);
-            vertical-align: top;
         }
         th {
             background: var(--ocha-blue);
@@ -175,8 +226,6 @@
             position: sticky;
             top: 0;
             z-index: 10;
-            font-size: 12px;
-            text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         tr:nth-child(even) { background-color: #fafbfc; }
@@ -274,7 +323,7 @@
     <a href="{{ url_for('index') }}">Home</a> / <a href="{{ url_for('manage_database') }}">Database Management</a>
 </div>
 {% endblock %}
-
+            
 {% block page_title %}Database Management{% endblock %}
 {% block page_subtitle %}Search, filter, and manage assessment records{% endblock %}
 
@@ -296,40 +345,42 @@
                 <span class="stat-label">Sources</span>
             </div>
             <div class="stat-card">
-                <span class="stat-number">{{ db_stats.last_7_days or 0 }}</span>
+                <span class="stat-number">{{ db_stats.records_last_7_days or 0 }}</span>
                 <span class="stat-label">Last 7 Days</span>
             </div>
         </div>
         <div class="stats-grid" style="margin-top: 24px;">
-            <div class="stat-card" style="align-items: flex-start; text-align: left;">
-                <span class="stat-label" style="font-size: 14px; font-weight: 700; color: var(--ocha-blue); margin-bottom: 8px;">Top 5 Countries</span>
-                <ul style="margin: 0; padding: 0; list-style: none;">
-                    {% if db_stats.top_5_countries and db_stats.top_5_countries|length > 0 %}
-                        {% for c in db_stats.top_5_countries %}
-                        <li style="margin-bottom: 6px;">
-                            <span style="font-weight:600;">{{ c.name }}</span>
-                            <span style="color:var(--ocha-blue); font-weight:500;">({{ c.count }})</span>
-                            <span style="color:var(--text-secondary);">- {{ c.pct }}%</span>
-                        </li>
+            <div class="stat-card stat-list-card">
+                <span class="stat-label">Top 5 Countries</span>
+                <ul class="stat-list">
+                    {% if db_stats.top_countries and db_stats.top_countries|length > 0 %}
+                        {% set total = db_stats.total_records or 1 %}
+                        {% for country, count in db_stats.top_countries %}
+                            <li>
+                                <span class="stat-list-name">{{ country }}</span>
+                                <span class="stat-list-count">({{ count }})</span>
+                                <span class="stat-list-percent">- {{ '%.1f' % ((count / total) * 100) }}%</span>
+                            </li>
                         {% endfor %}
                     {% else %}
-                        <li style="color:var(--text-secondary);">No data</li>
+                        <li class="no-data-text">No data</li>
                     {% endif %}
                 </ul>
             </div>
-            <div class="stat-card" style="align-items: flex-start; text-align: left;">
-                <span class="stat-label" style="font-size: 14px; font-weight: 700; color: var(--ocha-blue); margin-bottom: 8px;">Top 5 Sources</span>
-                <ul style="margin: 0; padding: 0; list-style: none;">
-                    {% if db_stats.top_5_sources and db_stats.top_5_sources|length > 0 %}
-                        {% for s in db_stats.top_5_sources %}
-                        <li style="margin-bottom: 6px;">
-                            <span style="font-weight:600;">{{ s.name }}</span>
-                            <span style="color:var(--ocha-blue); font-weight:500;">({{ s.count }})</span>
-                            <span style="color:var(--text-secondary);">- {{ s.pct }}%</span>
-                        </li>
+            <div class="stat-card stat-list-card">
+                <span class="stat-label">Top 5 Sources</span>
+                <ul class="stat-list">
+                    {% if db_stats.top_sources and db_stats.top_sources|length > 0 %}
+                        {% set total = db_stats.total_records or 1 %}
+                        {% for source, count in db_stats.top_sources %}
+                            <li>
+                                <span class="stat-list-name">{{ source }}</span>
+                                <span class="stat-list-count">({{ count }})</span>
+                                <span class="stat-list-percent">- {{ '%.1f' % ((count / total) * 100) }}%</span>
+                            </li>
                         {% endfor %}
                     {% else %}
-                        <li style="color:var(--text-secondary);">No data</li>
+                        <li class="no-data-text">No data</li>
                     {% endif %}
                 </ul>
             </div>
@@ -339,69 +390,115 @@
     <!-- Advanced Search Section -->
     <div class="management-section search-section">
         <h3>Search & Filter Records</h3>
-        <div class="form-row">
-            <div class="form-group">
-                <label for="searchTitle" class="form-label">Search by Title:</label>
-                <div class="search-input">
-                    <input type="text" id="searchTitle" class="form-control" placeholder="Enter title keywords..." onkeyup="searchRecords()">
+        <form id="filterForm" method="get" action="{{ url_for('manage_database') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="searchTitle" class="form-label">Search by Title:</label>
+                    <div class="search-input">
+                        <input type="text" id="searchTitle" name="searchTitle" class="form-control" placeholder="Enter title keywords..." value="{{ request.args.get('searchTitle', '') }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="searchBody" class="form-label">Search in Body/Content:</label>
+                    <div class="search-input">
+                        <input type="text" id="searchBody" name="searchBody" class="form-control" placeholder="Enter content keywords..." value="{{ request.args.get('searchBody', '') }}">
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label for="searchBody" class="form-label">Search in Body/Content:</label>
-                <div class="search-input">
-                    <input type="text" id="searchBody" class="form-control" placeholder="Enter content keywords..." onkeyup="searchRecords()">
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label for="filterPrimaryCountry" class="form-label">Filter by Primary Country:</label>
+                    <div class="custom-dropdown" data-name="filterPrimaryCountry">
+                        <div class="dropdown-toggle" tabindex="0">
+                            <span class="selected-text">All Primary Countries</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-search">
+                                <input type="text" placeholder="Search countries..." class="search-input">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                            <div class="dropdown-item" data-value="">All Primary Countries</div>
+                            {% for country in filter_options.primary_countries %}
+                            <div class="dropdown-item" data-value="{{ country }}">
+                                {{ country }}
+                                <span class="country-count">({{ country_counts.get(country, 0) }})</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="filterPrimaryCountry" value="{{ request.args.get('filterPrimaryCountry', '') }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="filterSecondaryCountry" class="form-label">Filter by Secondary Country:</label>
+                    <div class="custom-dropdown" data-name="filterSecondaryCountry">
+                        <div class="dropdown-toggle" tabindex="0">
+                            <span class="selected-text">All Secondary Countries</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-search">
+                                <input type="text" placeholder="Search countries..." class="search-input">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                            <div class="dropdown-item" data-value="">All Secondary Countries</div>
+                            {% for country in filter_options.secondary_countries %}
+                            <div class="dropdown-item" data-value="{{ country }}">
+                                {{ country }}
+                                <span class="country-count">({{ secondary_country_counts.get(country, 0) }})</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="filterSecondaryCountry" value="{{ request.args.get('filterSecondaryCountry', '') }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="filterCountry" class="form-label">Filter by Any Country:</label>
+                    <div class="custom-dropdown" data-name="filterCountry">
+                        <div class="dropdown-toggle" tabindex="0">
+                            <span class="selected-text">All Countries</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-search">
+                                <input type="text" placeholder="Search countries..." class="search-input">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                            <div class="dropdown-item" data-value="">All Countries</div>
+                            {% for country in filter_options.all_countries %}
+                            <div class="dropdown-item" data-value="{{ country }}">
+                                {{ country }}
+                                <span class="country-count">({{ all_country_counts.get(country, 0) }})</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <input type="hidden" name="filterCountry" value="{{ request.args.get('filterCountry', '') }}">
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="form-row-3">
-            <div class="form-group">
-                <label for="filterCountry" class="form-label">Filter by Country:</label>
-                <select id="filterCountry" class="form-select" onchange="searchRecords()">
-                    <option value="">All Countries</option>
-                    {% for country in filter_options.countries %}
-                    <option value="{{ country }}">{{ country }}</option>
-                    {% endfor %}
-                </select>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="filterDateFrom" class="form-label">Date From:</label>
+                    <input type="date" id="filterDateFrom" name="filterDateFrom" class="form-control" value="{{ request.args.get('filterDateFrom', '') }}">
+                </div>
+                <div class="form-group">
+                    <label for="filterDateTo" class="form-label">Date To:</label>
+                    <input type="date" id="filterDateTo" name="filterDateTo" class="form-control" value="{{ request.args.get('filterDateTo', '') }}">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="filterSource" class="form-label">Filter by Source:</label>
-                <select id="filterSource" class="form-select" onchange="searchRecords()">
-                    <option value="">All Sources</option>
-                    {% for source in filter_options.sources %}
-                    <option value="{{ source }}">{{ source }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="filterFormat" class="form-label">Filter by Format:</label>
-                <select id="filterFormat" class="form-select" onchange="searchRecords()">
-                    <option value="">All Formats</option>
-                    {% for format in filter_options.formats %}
-                    <option value="{{ format }}">{{ format }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-        <div class="form-row">
-            <div class="form-group">
-                <label for="filterDateFrom" class="form-label">Date From:</label>
-                <input type="date" id="filterDateFrom" class="form-control" onchange="searchRecords()">
-            </div>
-            <div class="form-group">
-                <label for="filterDateTo" class="form-label">Date To:</label>
-                <input type="date" id="filterDateTo" class="form-control" onchange="searchRecords()">
-            </div>
-        </div>
-        <button type="button" class="btn btn-secondary" onclick="clearFilters()">Clear All Filters</button>
+            <button type="submit" class="btn btn-secondary">Apply Filters</button>
+            <a href="{{ url_for('manage_database') }}" class="btn btn-secondary">Clear All Filters</a>
+            <button type="button" class="btn btn-danger" id="deleteFilteredBtn" style="display:none;" onclick="deleteFilteredRecords()">Delete All Filtered</button>
+        </form>
     </div>
-
+        
     <!-- Bulk Actions -->
     <div class="bulk-actions" id="bulkActions">
         <h4>Bulk Actions (<span id="selectedCount">0</span> selected)</h4>
         <button type="button" class="btn btn-danger" onclick="deleteSelected()">Delete Selected Records</button>
         <button type="button" class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
     </div>
-
+        
     <!-- Records Table -->
     <div class="records-container">
         <div class="table-controls">
@@ -447,9 +544,10 @@
                                 {% if row.primary_country %}
                                     <span class="country-tag primary-country">{{ row.primary_country }}</span>
                                 {% endif %}
-                                {% if row.country and row.country != row.primary_country %}
-                                    {% for country in row.country.split(';') %}
-                                        {% if country.strip() != row.primary_country %}
+                                {% if row.country %}
+                                    {% set countries = row.country.split(';') %}
+                                    {% for country in countries %}
+                                        {% if country.strip() and country.strip() != row.primary_country %}
                                             <span class="country-tag">{{ country.strip() }}</span>
                                         {% endif %}
                                     {% endfor %}
@@ -480,63 +578,6 @@
         </div>
     </div>
 
-    <!-- Bulk Delete Section -->
-    <div class="management-section danger-zone">
-        <h3>Bulk Delete by Criteria</h3>
-        <div class="warning-text">⚠️ Warning: This action cannot be undone. This will delete ALL records matching the criteria.</div>
-        <form method="POST">
-            <input type="hidden" name="action" value="delete_filtered">
-            <div class="form-row-3">
-                <div class="form-group">
-                    <label for="bulk_filter_country" class="form-label">Filter by Country (All):</label>
-                    <select name="filter_country" id="bulk_filter_country" class="form-select">
-                        <option value="">Select Country</option>
-                        {% for country in filter_options.countries %}
-                        <option value="{{ country }}">{{ country }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="bulk_filter_primary_country" class="form-label">Filter by Primary Country:</label>
-                    <select name="filter_primary_country" id="bulk_filter_primary_country" class="form-select">
-                        <option value="">Select Primary Country</option>
-                        {% for country in filter_options.countries %}
-                        <option value="{{ country }}">{{ country }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="bulk_filter_source" class="form-label">Filter by Source:</label>
-                    <select name="filter_source" id="bulk_filter_source" class="form-select">
-                        <option value="">Select Source</option>
-                        {% for source in filter_options.sources %}
-                        <option value="{{ source }}">{{ source }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="bulk_filter_date_from" class="form-label">From Date:</label>
-                    <input type="date" name="filter_date_from" id="bulk_filter_date_from" class="form-control">
-                </div>
-                <div class="form-group">
-                    <label for="bulk_filter_date_to" class="form-label">To Date:</label>
-                    <input type="date" name="filter_date_to" id="bulk_filter_date_to" class="form-control">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete ALL records matching these criteria? This cannot be undone.')">Delete All Matching Records</button>
-        </form>
-    </div>
-
-    <!-- Navigation -->
-    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--ocha-border);">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back to Home</a>
-        <a href="{{ url_for('view_metadata') }}" class="btn">View All Records</a>
-        <a href="{{ url_for('download_metadata') }}" class="btn">📥 Download CSV</a>
-        <a href="{{ url_for('download_metadata') }}?format=excel" class="btn">📊 Download Excel</a>
-    </div>
-
     <!-- Record Detail Modal -->
     <div id="recordModal" class="modal">
         <div class="modal-content">
@@ -559,7 +600,11 @@
 <script>
     let allRecords = [];
     document.addEventListener('DOMContentLoaded', function() {
-        // Store all records data for filtering
+        refreshAllRecords();
+        initializeDropdowns();
+    });
+
+    function refreshAllRecords() {
         const rows = document.querySelectorAll('#recordsTable tbody tr');
         allRecords = Array.from(rows).map(row => ({
             element: row,
@@ -572,53 +617,86 @@
             format: row.dataset.format,
             date: row.dataset.date
         }));
-
-        // Log all record data for debugging
-        const debugRecords = Array.from(rows).map(row => ({
-            id: row.dataset.id,
-            title: row.dataset.title,
-            country: row.dataset.country,
-            primaryCountry: row.dataset.primaryCountry,
-            source: row.dataset.source,
-            format: row.dataset.format,
-            date: row.dataset.date
-        }));
-        console.log("DEBUG: Records loaded in table:", debugRecords.slice(0, 10));
-    });
-
-    function searchRecords() {
-        const titleSearch = document.getElementById('searchTitle').value.toLowerCase();
-        const bodySearch = document.getElementById('searchBody').value.toLowerCase();
-        const countryFilter = document.getElementById('filterCountry').value.toLowerCase();
-        const sourceFilter = document.getElementById('filterSource').value.toLowerCase();
-        const formatFilter = document.getElementById('filterFormat').value.toLowerCase();
-        const dateFrom = document.getElementById('filterDateFrom').value;
-        const dateTo = document.getElementById('filterDateTo').value;
-        let visibleCount = 0;
-        allRecords.forEach(record => {
-            let show = true;
-            if (titleSearch && !record.title.includes(titleSearch)) show = false;
-            if (bodySearch && !record.body.includes(bodySearch)) show = false;
-            if (countryFilter && !record.country.includes(countryFilter) && !record.primaryCountry.includes(countryFilter)) show = false;
-            if (sourceFilter && !record.source.includes(sourceFilter)) show = false;
-            if (formatFilter && !record.format.includes(formatFilter)) show = false;
-            if (dateFrom && record.date < dateFrom) show = false;
-            if (dateTo && record.date > dateTo) show = false;
-            record.element.style.display = show ? '' : 'none';
-            if (show) visibleCount++;
-        });
-        document.getElementById('currentCount').textContent = visibleCount;
     }
 
-    function clearFilters() {
-        document.getElementById('searchTitle').value = '';
-        document.getElementById('searchBody').value = '';
-        document.getElementById('filterCountry').value = '';
-        document.getElementById('filterSource').value = '';
-        document.getElementById('filterFormat').value = '';
-        document.getElementById('filterDateFrom').value = '';
-        document.getElementById('filterDateTo').value = '';
-        searchRecords();
+    function initializeDropdowns() {
+        document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            const searchInput = dropdown.querySelector('.search-input');
+            const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+            const items = dropdown.querySelectorAll('.dropdown-item');
+            const selectedText = dropdown.querySelector('.selected-text');
+            
+            // Set initial value if exists
+            const currentValue = hiddenInput.value;
+            if (currentValue) {
+                const selectedItem = dropdown.querySelector(`[data-value="${currentValue}"]`);
+                if (selectedItem) {
+                    selectedText.textContent = selectedItem.textContent.split('(')[0].trim();
+                    selectedItem.classList.add('selected');
+                }
+            }
+            
+            // Toggle dropdown
+            toggle.addEventListener('click', () => {
+                const isOpen = menu.classList.contains('show');
+                closeAllDropdowns();
+                if (!isOpen) {
+                    menu.classList.add('show');
+                    toggle.classList.add('open');
+                    searchInput.focus();
+                }
+            });
+            
+            // Search functionality
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                });
+            });
+            
+            // Item selection
+            items.forEach(item => {
+                item.addEventListener('click', () => {
+                    const value = item.dataset.value;
+                    const text = item.textContent.split('(')[0].trim();
+                    
+                    // Update selection
+                    items.forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                    
+                    selectedText.textContent = text;
+                    hiddenInput.value = value;
+                    
+                    // Close dropdown
+                    menu.classList.remove('show');
+                    toggle.classList.remove('open');
+                    
+                    // Reset search
+                    searchInput.value = '';
+                    items.forEach(i => i.style.display = 'block');
+                });
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-dropdown')) {
+                closeAllDropdowns();
+            }
+        });
+    }
+    
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+        document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
+            toggle.classList.remove('open');
+        });
     }
 
     function updateBulkActions() {
@@ -626,11 +704,13 @@
         const count = selected.length;
         document.getElementById('selectedCount').textContent = count;
         document.getElementById('bulkActions').classList.toggle('show', count > 0);
+        
         // Update select all checkbox
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const visibleCheckboxes = Array.from(document.querySelectorAll('.record-checkbox')).filter(cb =>
             cb.closest('tr').style.display !== 'none'
         );
+        
         if (count === 0) {
             selectAllCheckbox.indeterminate = false;
             selectAllCheckbox.checked = false;
@@ -671,22 +751,27 @@
     function deleteSelected() {
         const selected = Array.from(document.querySelectorAll('.record-checkbox:checked')).map(cb => cb.value);
         if (selected.length === 0) return;
+        
         if (confirm(`Are you sure you want to delete ${selected.length} selected records? This cannot be undone.`)) {
             fetch('/manage/delete_selected', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ ids: selected })
             })
             .then(response => response.json())
-            .then(data => { // <-- FIXED: parentheses added here
+            .then(data => {
                 if (data.success) {
+                    alert('Records deleted successfully!');
                     location.reload();
                 } else {
                     alert('Error deleting records: ' + data.message);
                 }
             })
             .catch(error => {
-                alert('Error deleting records: ' + error);
+                console.error('Error:', error);
+                alert('Error deleting records');
             });
         }
     }
@@ -695,19 +780,23 @@
         if (confirm(`Are you sure you want to delete "${title}"? This cannot be undone.`)) {
             fetch('/manage/delete_record', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ id: id })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    alert('Record deleted successfully!');
                     location.reload();
                 } else {
                     alert('Error deleting record: ' + data.message);
                 }
             })
             .catch(error => {
-                alert('Error deleting record: ' + error);
+                console.error('Error:', error);
+                alert('Error deleting record');
             });
         }
     }
@@ -716,38 +805,35 @@
         fetch(`/manage/record/${id}`)
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    const record = data.record;
-                    const detailsHtml = `
-                        <div class="record-detail"><strong>ID:</strong> ${record.id}</div>
-                        <div class="record-detail"><strong>Report ID:</strong> ${record.report_id || 'N/A'}</div>
-                        <div class="record-detail"><strong>Title:</strong> ${record.title || 'N/A'}</div>
-                        <div class="record-detail"><strong>Primary Country:</strong> ${record.primary_country || 'N/A'}</div>
-                        <div class="record-detail"><strong>All Countries:</strong> ${record.country || 'N/A'}</div>
-                        <div class="record-detail"><strong>Source:</strong> ${record.source || 'N/A'}</div>
-                        <div class="record-detail"><strong>Format:</strong> ${record.format || 'N/A'}</div>
-                        <div class="record-detail"><strong>Language:</strong> ${record.language || 'N/A'}</div>
-                        <div class="record-detail"><strong>Theme:</strong> ${record.theme || 'N/A'}</div>
-                        <div class="record-detail"><strong>Date Created:</strong> ${record.date_created || 'N/A'}</div>
-                        <div class="record-detail"><strong>Status:</strong> ${record.status || 'N/A'}</div>
-                        <div class="record-detail"><strong>URL:</strong> ${record.url ? `<a href="${record.url}" target="_blank">${record.url}</a>` : 'N/A'}</div>
-                        <div class="record-detail"><strong>Body:</strong><br><textarea readonly rows="8" style="width: 100%; margin-top: 8px;">${record.body || 'N/A'}</textarea></div>
-                        <div class="record-detail"><strong>File Info:</strong> ${record.file_info || 'N/A'}</div>
-                        <div class="record-detail"><strong>Created At:</strong> ${record.created_at || 'N/A'}</div>
-                    `;
-                    document.getElementById('recordDetails').innerHTML = detailsHtml;
-                    document.getElementById('modalDeleteBtn').onclick = () => {
-                        closeModal();
-                        deleteRecord(record.id, record.title);
-                    };
+                if (data.record) {
+                    displayRecordDetails(data.record);
                     document.getElementById('recordModal').style.display = 'block';
+                    document.getElementById('modalDeleteBtn').onclick = () => deleteRecord(id, data.record.title || 'Record');
                 } else {
-                    alert('Error loading record: ' + data.message);
+                    alert('Error loading record details');
                 }
             })
             .catch(error => {
-                alert('Error loading record: ' + error);
+                console.error('Error:', error);
+                alert('Error loading record details');
             });
+    }
+
+    function displayRecordDetails(record) {
+        const detailsDiv = document.getElementById('recordDetails');
+        detailsDiv.innerHTML = `
+            <div class="record-detail"><strong>ID:</strong> ${record.id || 'N/A'}</div>
+            <div class="record-detail"><strong>Report ID:</strong> ${record.report_id || 'N/A'}</div>
+            <div class="record-detail"><strong>Title:</strong> ${record.title || 'N/A'}</div>
+            <div class="record-detail"><strong>Primary Country:</strong> ${record.primary_country || 'N/A'}</div>
+            <div class="record-detail"><strong>All Countries:</strong> ${record.country || 'N/A'}</div>
+            <div class="record-detail"><strong>Source:</strong> ${record.source || 'N/A'}</div>
+            <div class="record-detail"><strong>Format:</strong> ${record.format || 'N/A'}</div>
+            <div class="record-detail"><strong>Date Created:</strong> ${record.date_created || 'N/A'}</div>
+            <div class="record-detail"><strong>Created At:</strong> ${record.created_at || 'N/A'}</div>
+            <div class="record-detail"><strong>URL:</strong> ${record.url ? `<a href="${record.url}" target="_blank">${record.url}</a>` : 'N/A'}</div>
+            <div class="record-detail"><strong>Body:</strong> ${record.body ? record.body.substring(0, 500) + (record.body.length > 500 ? '...' : '') : 'N/A'}</div>
+        `;
     }
 
     function closeModal() {
@@ -758,7 +844,7 @@
     window.onclick = function(event) {
         const modal = document.getElementById('recordModal');
         if (event.target === modal) {
-            closeModal();
+            modal.style.display = 'none';
         }
     }
 </script>

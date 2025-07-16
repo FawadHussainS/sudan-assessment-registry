@@ -1,14 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
 from utils.reliefweb_api import fetch_assessments, get_filter_options, get_document_count, get_all_format_counts_for_country, get_available_fields
 from utils.db_utils import save_metadata, init_db, get_all_metadata, get_database_stats, delete_records, get_record_by_id
+from utils.content_utils import clean_html_content, format_date_for_display, truncate_text
 import pandas as pd
 from io import StringIO, BytesIO
 import os
 import logging
 import sqlite3
 from collections import Counter
-from flask import render_template
-from datetime import datetime, timedelta
 
 # Configure logging with UTF-8 support
 logging.basicConfig(
@@ -109,6 +108,24 @@ def index():
     # Get database statistics for dashboard
     try:
         db_stats = get_database_stats(DB_PATH)
+        # Get existing countries from database for the extraction form
+        existing_records = get_all_metadata(DB_PATH)
+        db_countries = set()
+        for record in existing_records:
+            if record.get('primary_country'):
+                db_countries.add(record['primary_country'])
+            if record.get('country'):
+                countries = [c.strip() for c in record['country'].split(';') if c.strip()]
+                db_countries.update(countries)
+        
+        # Combine API countries with database countries
+        combined_filter_options = FILTER_OPTIONS.copy()
+        if db_countries:
+            # Merge and sort countries
+            all_countries = set(FILTER_OPTIONS.get('countries', []))
+            all_countries.update(db_countries)
+            combined_filter_options['countries'] = sorted(list(all_countries))
+        
     except Exception as e:
         logger.error(f"Error getting database stats: {str(e)}")
         db_stats = {
@@ -119,8 +136,9 @@ def index():
             'countries_list': [],
             'recent_records': []
         }
+        combined_filter_options = FILTER_OPTIONS
     
-    return render_template("index.html", db_stats=db_stats, filter_options=FILTER_OPTIONS)
+    return render_template("index.html", db_stats=db_stats, filter_options=combined_filter_options)
 
 @app.route("/metadata")
 def view_metadata():
@@ -136,104 +154,266 @@ def view_metadata():
 @app.route("/manage", methods=["GET", "POST"])
 def manage_database():
     """Database management interface"""
-    if request.method == "POST":
-        action = request.form.get("action")
-        
-        if action == "delete_filtered":
-            try:
-                filters = {
-                    "country": request.form.get("filter_country", ""),
-                    "primary_country": request.form.get("filter_primary_country", ""),
-                    "source": request.form.get("filter_source", ""),
-                    "date_from": request.form.get("filter_date_from", ""),
-                    "date_to": request.form.get("filter_date_to", "")
-                }
-                
-                # Remove empty filters
-                filters = {k: v for k, v in filters.items() if v}
-                
-                if not filters:
-                    flash("Please specify at least one filter for deletion", "warning")
-                else:
-                    deleted_count = delete_records(DB_PATH, filters)
-                    flash(f"Deleted {deleted_count} records matching the criteria", "success")
-                    
-            except Exception as e:
-                logger.error(f"Error deleting records: {str(e)}")
-                flash(f"Error deleting records: {str(e)}", "error")
-        
-        return redirect(url_for("manage_database"))
+    # --- 1. Gather filter values from request (GET or POST) ---
+    filters = {
+        "title": request.values.get("searchTitle", "").strip(),
+        "body": request.values.get("searchBody", "").strip(),
+        "primary_country": request.values.get("filterPrimaryCountry", "").strip(),
+        "secondary_country": request.values.get("filterSecondaryCountry", "").strip(),
+        "country": request.values.get("filterCountry", "").strip(),
+        "source": request.values.get("filterSource", "").strip(),
+        "format": request.values.get("filterFormat", "").strip(),
+        "date_from": request.values.get("filterDateFrom", "").strip(),
+        "date_to": request.values.get("filterDateTo", "").strip(),
+    }
+
+    # Get sorting parameters
+    sort_by = request.values.get("sort", "date_created")
+    sort_order = request.values.get("order", "desc")
     
-    # Get current database stats
+    # --- 2. Fetch all records ---
     try:
         db_stats = get_database_stats(DB_PATH)
-        data = get_all_metadata(DB_PATH)
+        records = get_all_metadata(DB_PATH)
     except Exception as e:
         logger.error(f"Error loading management data: {str(e)}")
         db_stats = {}
-        data = []
-    
-    # Fetch all records from your database
-    records = get_all_metadata(DB_PATH)  # Replace with your actual DB fetch
+        records = []
 
-    # Calculate statistics
-    total_records = len(records)
-    all_countries = []
-    all_sources = []
+    # --- Add this block to compute top countries and sources ---
+    country_counter = Counter()
+    source_counter = Counter()
     for r in records:
-        if r.get('country'):
-            all_countries.extend([c.strip() for c in r['country'].replace(',', ';').split(';') if c.strip()])
+        if r.get('primary_country'):
+            country_counter[r['primary_country']] += 1
         if r.get('source'):
-            all_sources.extend([s.strip() for s in r['source'].split(',') if s.strip()])
+            source_counter[r['source']] += 1
 
-    # DEBUG: Log raw country/source lists and counts
-    logger.info(f"Sample all_countries: {all_countries[:10]}")
-    logger.info(f"Sample all_sources: {all_sources[:10]}")
-    logger.info(f"Country counts: {Counter(all_countries).most_common(10)}")
-    logger.info(f"Source counts: {Counter(all_sources).most_common(10)}")
+    db_stats['top_countries'] = country_counter.most_common(5)
+    db_stats['top_sources'] = source_counter.most_common(5)
 
-    unique_countries = set(all_countries)
-    unique_sources = set(all_sources)
+    # --- 3. Get available countries, sources, and formats from all records for filter options ---
+    all_countries = set()
+    primary_countries = set()
+    secondary_countries = set()
+    all_sources = set()
+    all_formats = set()
+    
+    for record in records:
+        # Primary countries
+        if record.get('primary_country'):
+            primary_countries.add(record['primary_country'])
+            all_countries.add(record['primary_country'])
+        
+        # All countries (including secondary)
+        if record.get('country'):
+            countries = [c.strip() for c in record['country'].split(';') if c.strip()]
+            for country in countries:
+                all_countries.add(country)
+                if country != record.get('primary_country'):
+                    secondary_countries.add(country)
+        
+        # Sources
+        if record.get('source'):
+            all_sources.add(record['source'])
+        
+        # Formats
+        if record.get('format'):
+            all_formats.add(record['format'])
 
-    # Top 5 countries and sources by count
-    country_counts = Counter(all_countries)
-    source_counts = Counter(all_sources)
-
-    top_5_countries = country_counts.most_common(5)
-    top_5_sources = source_counts.most_common(5)
-
-    # Calculate percentages
-    top_5_countries_pct = [
-        {"name": name, "count": count, "pct": round((count / total_records) * 100, 1) if total_records else 0}
-        for name, count in top_5_countries
-    ]
-    top_5_sources_pct = [
-        {"name": name, "count": count, "pct": round((count / total_records) * 100, 1) if total_records else 0}
-        for name, count in top_5_sources
-    ]
-
-    # Last 7 days
-    now = datetime.utcnow()
-    last_7_days = sum(
-        1 for r in records
-        if r.get('date_created') and
-        datetime.strptime(r['date_created'][:10], '%Y-%m-%d') >= now - timedelta(days=7)
-    )
-
-    db_stats = {
-        "total_records": total_records,
-        "unique_countries": len(unique_countries),
-        "unique_sources": len(unique_sources),
-        "last_7_days": last_7_days,
-        "top_5_countries": top_5_countries_pct,
-        "top_5_sources": top_5_sources_pct,
+    # Create filter options from database data
+    filter_options = {
+        'primary_countries': sorted(list(primary_countries)),
+        'secondary_countries': sorted(list(secondary_countries)),
+        'all_countries': sorted(list(all_countries)),
+        'sources': sorted(list(all_sources)),
+        'formats': sorted(list(all_formats))
     }
 
+    # --- 4. Filter records in Python ---
+    def record_matches_filters(r):
+        # Convert fields to lowercase for case-insensitive comparison
+        rec_title = (r.get("title") or "").lower()
+        rec_body = (r.get("body") or "").lower()
+        rec_country = (r.get("country") or "").lower()
+        rec_primary = (r.get("primary_country") or "").lower()
+        rec_source = (r.get("source") or "").lower()
+        rec_format = (r.get("format") or "").lower()
+        rec_date = r.get("date_created") or ""
+
+        # Title filter - case insensitive substring match
+        if filters["title"] and filters["title"].lower() not in rec_title:
+            return False
+            
+        # Body filter - case insensitive substring match
+        if filters["body"] and filters["body"].lower() not in rec_body:
+            return False
+            
+        # Primary country filter - exact match (case insensitive)
+        if filters["primary_country"] and rec_primary != filters["primary_country"].lower():
+            return False
+            
+        # General country filter (matches primary or any in country list) - case insensitive
+        if filters["country"]:
+            country_filter = filters["country"].lower()
+            # Check if filter matches primary country or any country in the list
+            country_matches = False
+            if country_filter == rec_primary:
+                country_matches = True
+            elif rec_country:
+                # Split countries and check each one
+                countries_list = [c.strip().lower() for c in rec_country.split(";") if c.strip()]
+                if country_filter in countries_list:
+                    country_matches = True
+            
+            if not country_matches:
+                return False
+                
+        # Secondary country filter - case insensitive
+        if filters["secondary_country"]:
+            secondary_filter = filters["secondary_country"].lower()
+            if rec_country:
+                # Split countries and check if the filter matches any secondary country
+                countries_list = [c.strip().lower() for c in rec_country.split(";") if c.strip()]
+                # Remove primary country from the list to get only secondary countries
+                secondary_countries_list = [c for c in countries_list if c != rec_primary]
+                if secondary_filter not in secondary_countries_list:
+                    return False
+            else:
+                return False
+                
+        # Source filter - case insensitive substring match
+        if filters["source"] and filters["source"].lower() not in rec_source:
+            return False
+            
+        # Format filter - case insensitive substring match
+        if filters["format"] and filters["format"].lower() not in rec_format:
+            return False
+            
+        # Date from filter
+        if filters["date_from"] and rec_date:
+            try:
+                if rec_date < filters["date_from"]:
+                    return False
+            except (ValueError, TypeError):
+                pass
+            
+        # Date to filter
+        if filters["date_to"] and rec_date:
+            try:
+                if rec_date > filters["date_to"]:
+                    return False
+            except (ValueError, TypeError):
+                pass
+            
+        return True
+
+    # Apply filters - only filter if at least one filter has a value
+    filtered_records = []
+    if any(filter_value for filter_value in filters.values() if filter_value):
+        filtered_records = [r for r in records if record_matches_filters(r)]
+        logger.info(f"Applied filters: {filters}")
+        logger.info(f"Filtered {len(records)} records down to {len(filtered_records)}")
+    else:
+        filtered_records = records
+        logger.info(f"No filters applied, showing all {len(records)} records")
+
+    # --- 5. Sort filtered records ---
+    def safe_get_sort_value(record, key):
+        """Safely get sort value, handling None and different data types"""
+        value = record.get(key)
+        if value is None:
+            return ""
+        if key in ['date_created', 'created_at', 'updated_at']:
+            # Handle date sorting
+            try:
+                if isinstance(value, str):
+                    # Try to parse ISO format dates
+                    from datetime import datetime
+                    return datetime.fromisoformat(value.replace('Z', '+00:00').replace('T', ' '))
+                return value
+            except:
+                return ""
+        elif key == 'id':
+            # Handle numeric ID sorting
+            try:
+                return int(value) if value else 0
+            except:
+                return 0
+        else:
+            # Handle string sorting
+            return str(value).lower() if value else ""
+
+    # Sort the filtered records
+    reverse_order = (sort_order == "desc")
+    try:
+        filtered_records.sort(key=lambda x: safe_get_sort_value(x, sort_by), reverse=reverse_order)
+    except Exception as e:
+        logger.error(f"Error sorting records: {e}")
+        # Fallback to default sorting by date
+        filtered_records.sort(key=lambda x: safe_get_sort_value(x, "date_created"), reverse=True)
+
+    # --- 6. Process records for better display ---
+    import re
+    from html import unescape
+    
+    
+
+    # Process records for display
+    for record in filtered_records:
+        # Clean content preview
+        if record.get('body'):
+            record['content_preview'] = clean_html_content(record['body'])
+        elif record.get('body_html'):
+            record['content_preview'] = clean_html_content(record['body_html'])
+        else:
+            record['content_preview'] = "No content available"
+        
+        # Format date for display
+        if record.get('date_created'):
+            try:
+                from datetime import datetime
+                date_obj = datetime.fromisoformat(record['date_created'].replace('Z', '+00:00'))
+                record['formatted_date'] = date_obj.strftime('%Y-%m-%d')
+            except:
+                record['formatted_date'] = record['date_created'][:10] if len(record['date_created']) >= 10 else record['date_created']
+
+    # --- 7. Get country counts for dropdown display based on filtered results ---
+    country_counts = {}
+    secondary_country_counts = {}
+    all_country_counts = {}
+    
+    # Calculate counts for each country type based on filtered records
+    for country in filter_options['primary_countries']:
+        count = len([r for r in filtered_records if (r.get('primary_country') or '').lower() == country.lower()])
+        if count > 0:  # Only include countries that have records
+            country_counts[country] = count
+    
+    for country in filter_options['secondary_countries']:
+        count = len([r for r in filtered_records 
+                    if country.lower() in [c.strip().lower() for c in (r.get('country', '') or '').split(';')]])
+        if count > 0:  # Only include countries that have records
+            secondary_country_counts[country] = count
+    
+    for country in filter_options['all_countries']:
+        count = len([r for r in filtered_records 
+                    if (country.lower() in [c.strip().lower() for c in (r.get('country', '') or '').split(';')] or 
+                        (r.get('primary_country') or '').lower() == country.lower())])
+        if count > 0:  # Only include countries that have records
+            all_country_counts[country] = count
+    
+    # --- 8. Render template with filtered and sorted data ---
     return render_template(
         "manage.html",
         db_stats=db_stats,
-        filter_options=FILTER_OPTIONS,
-        data=records
+        filter_options=filter_options,
+        data=filtered_records,
+        country_counts=country_counts,
+        secondary_country_counts=secondary_country_counts,
+        all_country_counts=all_country_counts,
+        current_filters=filters,
+        current_sort=sort_by,
+        current_order=sort_order
     )
 
 @app.route("/manage/delete_record", methods=["POST"])
