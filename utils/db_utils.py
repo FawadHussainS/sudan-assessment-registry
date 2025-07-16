@@ -168,7 +168,7 @@ def get_database_stats(db_path):
         
         # Recent records (last 5)
         c.execute("""
-            SELECT title, country, source, date_created, created_at
+            SELECT id, title, country, primary_country, source, format, date_created, created_at
             FROM assessments 
             ORDER BY created_at DESC 
             LIMIT 5

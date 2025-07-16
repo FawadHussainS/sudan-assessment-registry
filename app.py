@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
-from utils.reliefweb_api import fetch_assessments, get_filter_options, get_document_count, get_all_format_counts_for_country
+from utils.reliefweb_api import fetch_assessments, get_filter_options, get_document_count, get_all_format_counts_for_country, get_available_fields
 from utils.db_utils import save_metadata, init_db, get_all_metadata, get_database_stats, delete_records, get_record_by_id
 import pandas as pd
 from io import StringIO, BytesIO
@@ -214,6 +214,29 @@ def delete_selected_records():
     except Exception as e:
         logger.error(f"Error deleting selected records: {str(e)}")
         return jsonify({"success": False, "message": str(e)})
+
+@app.route("/api/record/<int:record_id>")
+def get_record_for_modal(record_id):
+    """Get record details for modal display on index page"""
+    try:
+        record = get_record_by_id(DB_PATH, record_id)
+        
+        if record:
+            # Format the record for display
+            formatted_record = dict(record)
+            
+            # Clean up empty fields and provide defaults
+            for key, value in formatted_record.items():
+                if value is None or (isinstance(value, str) and value.strip() == ''):
+                    formatted_record[key] = 'Not specified'
+            
+            return jsonify(formatted_record)
+        else:
+            return jsonify({"error": "Record not found"}), 404
+            
+    except Exception as e:
+        logger.error(f"Error getting record for modal: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/manage/record/<int:record_id>")
 def get_record_details(record_id):
