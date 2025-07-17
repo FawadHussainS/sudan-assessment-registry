@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Assessment Extractor - OCHA{% endblock %}</title>
+    <title>{% block title %}AI Needs Analysis - OCHA{% endblock %}</title>
 
     <style>
 
@@ -77,7 +77,7 @@
                     UN Office for the Coordination of Humanitarian Affairs
                 </div>
                 <div class="header-info">
-                    Assessment Registry System | Version 1.0
+                    AI Needs Analysis System | Version Beta 1.0
                 </div>
             </div>
         </div>
@@ -86,10 +86,10 @@
         <div class="header-main">
             <div class="container">
                 <a href="{{ url_for('index') }}" class="logo">
-                    <div class="logo-icon">AR</div>
+                    <div class="logo-icon">AI</div>
                     <div class="logo-text">
-                        <div class="logo-title">Assessment Extractor</div>
-                        <div class="logo-subtitle">Humanitarian Data Management</div>
+                        <div class="logo-title">Humanitarian Needs Analysis</div>
+                        <div class="logo-subtitle">AI Generated Needs Analysis</div>
                     </div>
                 </a>
                 
@@ -107,29 +107,28 @@
                             Dashboard
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('view_metadata') }}" class="nav-link {% if request.endpoint == 'view_metadata' %}active{% endif %}">
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['view_metadata', 'manage_database', 'update_ar_monday'] %}active{% endif %}" onclick="event.preventDefault(); this.parentElement.classList.toggle('show');">
                             <span class="nav-icon">▦</span>
-                            View Records
+                            Metadata Database
                         </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('manage_database') }}" class="nav-link {% if request.endpoint == 'manage_database' %}active{% endif %}">
-                            <span class="nav-icon">⚙</span>
-                            Manage Database
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('download_metadata') }}" class="nav-link">
-                            <span class="nav-icon">↓</span>
-                            Download CSV
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ url_for('download_metadata') }}?format=excel" class="nav-link">
-                            <span class="nav-icon">≡</span>
-                            Download Excel
-                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{{ url_for('view_metadata') }}" class="dropdown-item {% if request.endpoint == 'view_metadata' %}active{% endif %}">
+                                    View Records
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('manage_database') }}" class="dropdown-item {% if request.endpoint == 'manage_database' %}active{% endif %}">
+                                    Manage Database
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('update_ar_monday') }}" class="dropdown-item {% if request.endpoint == 'update_ar_monday' %}active{% endif %}">
+                                    Update AR Monday
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a href="{{ url_for('api_fields') }}" class="nav-link {% if request.endpoint == 'api_fields' %}active{% endif %}">

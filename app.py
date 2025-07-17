@@ -680,6 +680,24 @@ def internal_error(error):
     flash("An internal error occurred. Please try again.", "error")
     return render_template('index.html', filter_options=FILTER_OPTIONS, db_stats={'total_records': 0}), 500
 
+@app.route("/update-ar-monday")
+def update_ar_monday():
+    return render_template("update_ar_monday.html")
+
+# Add this after creating the Flask app but before the routes
+@app.before_request
+def debug_routes_once():
+    if not hasattr(app, '_routes_printed'):
+        print("Registered routes:")
+        for rule in app.url_map.iter_rules():
+            print(f"  {rule.endpoint}: {rule.rule}")
+        app._routes_printed = True
+
+def debug_routes():
+    print("Registered routes:")
+    for rule in app.url_map.iter_rules():
+        print(f"  {rule.endpoint}: {rule.rule}")
+
 if __name__ == "__main__":
     print("🚀 Starting Sudan Assessment Registry...")
     print("📊 Database initialized successfully")
@@ -696,6 +714,10 @@ if __name__ == "__main__":
     print("   /manage - Database management")
     print("   /api/fields - API field reference")
     print()
+    
+    # Call debug_routes before starting the app
+    debug_routes()
+    
     print("✨ Ready to extract humanitarian assessments!")
     print("=" * 50)
     

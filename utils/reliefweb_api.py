@@ -633,15 +633,22 @@ def fetch_assessments(params: Dict[str, Any], downloads_dir: str) -> Tuple[List[
                 metadata['disaster_type'] = ', '.join(disaster_types)
             
             files = fields.get('file', [])
+            file_urls = []
+            file_info = []
             if files and isinstance(files, list):
-                file_info = []
                 for file_obj in files:
                     if isinstance(file_obj, dict):
                         file_desc = f"File: {file_obj.get('filename', 'Unknown')} ({file_obj.get('mimetype', 'Unknown type')})"
                         if file_obj.get('url'):
                             file_desc += f" - URL: {file_obj['url']}"
+                            file_urls.append(file_obj['url'])
                         file_info.append(file_desc)
-                metadata['file_info'] = ' | '.join(file_info)
+            metadata['file_info'] = ' | '.join(file_info)
+            # Example for a single file
+            metadata['file_url'] = file_obj.get('url')
+
+            # Example for multiple files
+            metadata['file_urls'] = [f.get('url') for f in files if f.get('url')]
             
             metadata_list.append(metadata)
             
@@ -1019,7 +1026,7 @@ def post_filtering_validation(original_list: List[Dict], filtered_list: List[Dic
         'recommendations': []
     }
     
-    target_lower = target_country.lower()
+    target_lower = target_country.lower();
     
     # Check excluded records for potential false negatives
     for record in excluded_list:

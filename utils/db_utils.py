@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+import json
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,11 @@ def save_metadata(db_path, metadata):
                 if c.fetchone():
                     logger.info(f"Report {meta.get('report_id')} already exists, skipping")
                     continue
+                
+                # Process file_urls: convert to JSON string if it's a list
+                file_urls = meta.get('file_urls', [])
+                if isinstance(file_urls, list):
+                    file_urls = json.dumps(file_urls)
                 
                 # Insert new record
                 c.execute("""
