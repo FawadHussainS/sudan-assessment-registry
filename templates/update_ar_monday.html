@@ -1,7 +1,98 @@
 <!-- filepath: c:\Users\Test\Sudan-Assessment Registry\templates\update_ar_monday.html -->
 {% extends "base.html" %}
+
 {% block title %}Update AR Monday{% endblock %}
+
 {% block content %}
-    <h2>Update AR Monday</h2>
-    <p>This page will allow you to update AR Monday data.</p>
+<div class="container">
+    <h2>Monday.com Data Integration - DEBUG MODE</h2>
+    
+    <!-- Debug info -->
+    <div class="alert alert-info">
+        <strong>Debug Info:</strong><br>
+        Method: {{ request.method }}<br>
+        Endpoint: {{ request.endpoint }}<br>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Monday.com Data Fetch</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="mondayForm">
+                        <div class="mb-3">
+                            <label for="api_token" class="form-label">API Token *</label>
+                            <input type="password" class="form-control" id="api_token" name="api_token" required>
+                            <div class="form-text">Enter your Monday.com API token</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="board_id" class="form-label">Board ID</label>
+                            <input type="number" class="form-control" id="board_id" name="board_id" value="1246796913">
+                            <div class="form-text">Monday.com board ID (default: 1246796913)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="limit" class="form-label">Limit</label>
+                            <input type="number" class="form-control" id="limit" name="limit" value="100" min="1" max="1000">
+                            <div class="form-text">Maximum number of items to fetch (1-1000)</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-download"></i> Fetch Data from Monday.com
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Account:</strong> ochanaras@un.org</p>
+                    <p><strong>Board URL:</strong> <a href="https://un-ocha.monday.com/boards/1246796913" target="_blank">View Board</a></p>
+                    <p><strong>Platform:</strong> Monday.com</p>
+                    <hr>
+                    <p><strong>Note:</strong> This will fetch data from Monday.com and check for duplicates against existing database records.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if results %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="alert alert-success">
+                <strong>Results received!</strong> Processing completed successfully.
+                <br>
+                <strong>Total Fetched:</strong> {{ results.stats.total_fetched }}<br>
+                <strong>New Records:</strong> {{ results.stats.new_count }}<br>
+                <strong>Duplicates:</strong> {{ results.stats.duplicate_count }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('mondayForm').addEventListener('submit', function(e) {
+    console.log('Form submit event triggered');
+    
+    // Check if all required fields are filled
+    const apiToken = document.getElementById('api_token').value;
+    if (!apiToken.trim()) {
+        alert('API token is required');
+        e.preventDefault();
+        return false;
+    }
+    
+    console.log('Form validation passed');
+    return true;
+});
+</script>
 {% endblock %}
