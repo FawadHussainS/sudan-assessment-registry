@@ -6,7 +6,6 @@
     <title>{% block title %}AI Needs Analysis - OCHA{% endblock %}</title>
 
     <style>
-
         :root {
             --ocha-blue: #007ce0;
             --ocha-dark-blue: #005a9c;
@@ -61,6 +60,63 @@
             color: white;
             margin-left: 0;
         }
+        
+        /* Dashboard specific styles */
+        .dashboard-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--ocha-blue), var(--ocha-dark-blue));
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .btn-view-all {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--ocha-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-view-all:hover {
+            background: var(--ocha-dark-blue);
+            color: white;
+        }
     </style>
     <!-- Central CSS File -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -85,7 +141,7 @@
         <!-- Header Main -->
         <div class="header-main">
             <div class="container">
-                <a href="{{ url_for('index') }}" class="logo">
+                <a href="{{ url_for('main.index') }}" class="logo">
                     <div class="logo-icon">AI</div>
                     <div class="logo-text">
                         <div class="logo-title">Humanitarian Needs Analysis</div>
@@ -102,36 +158,36 @@
             <div class="container">
                 <ul class="nav-list" id="navList">
                     <li class="nav-item">
-                        <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                        <a href="{{ url_for('main.index') }}" class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}">
                             <span class="nav-icon">⌂</span>
                             Dashboard
                         </a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['view_metadata', 'manage_database', 'update_ar_monday'] %}active{% endif %}" onclick="event.preventDefault(); this.parentElement.classList.toggle('show');">
+                        <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['metadata.view_metadata', 'manage.manage_database', 'monday.update_ar_monday'] %}active{% endif %}" onclick="event.preventDefault(); this.parentElement.classList.toggle('show');">
                             <span class="nav-icon">▦</span>
                             Metadata Database
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a href="{{ url_for('view_metadata') }}" class="dropdown-item {% if request.endpoint == 'view_metadata' %}active{% endif %}">
+                                <a href="{{ url_for('metadata.view_metadata') }}" class="dropdown-item {% if request.endpoint == 'metadata.view_metadata' %}active{% endif %}">
                                     View Records
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ url_for('manage_database') }}" class="dropdown-item {% if request.endpoint == 'manage_database' %}active{% endif %}">
+                                <a href="{{ url_for('manage.manage_database') }}" class="dropdown-item {% if request.endpoint == 'manage.manage_database' %}active{% endif %}">
                                     Manage Database
                                 </a>
                             </li>
                             <li>
-                                <a href="{{ url_for('update_ar_monday') }}" class="dropdown-item {% if request.endpoint == 'update_ar_monday' %}active{% endif %}">
+                                <a href="{{ url_for('monday.update_ar_monday') }}" class="dropdown-item {% if request.endpoint == 'monday.update_ar_monday' %}active{% endif %}">
                                     Update AR Monday
                                 </a>
                             </li>
                         </ul>
                     </li>
                     <li class="nav-item">
-                        <a href="{{ url_for('api_fields') }}" class="nav-link {% if request.endpoint == 'api_fields' %}active{% endif %}">
+                        <a href="{{ url_for('api.api_fields') }}" class="nav-link {% if request.endpoint == 'api.api_fields' %}active{% endif %}">
                             <span class="nav-icon">◉</span>
                             API Reference
                         </a>

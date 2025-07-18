@@ -141,6 +141,7 @@
             margin-bottom: 12px;
             transition: all 0.2s ease;
             position: relative;
+            cursor: pointer;
         }
         
         .recent-item:last-of-type {
@@ -299,6 +300,8 @@
             background: linear-gradient(135deg, #545b62 0%, #495057 100%);
             transform: translateY(-1px);
             box-shadow: 0 3px 10px rgba(108, 117, 125, 0.3);
+            color: white;
+            text-decoration: none;
         }
         
         .form-section {
@@ -601,7 +604,7 @@
 
 {% block breadcrumb %}
 <div class="breadcrumb">
-    <a href="{{ url_for('index') }}">Home</a> / Dashboard
+    <a href="{{ url_for('main.index') }}">Home</a> / Dashboard
 </div>
 {% endblock %}
 
@@ -665,7 +668,8 @@
             </div>
             {% endfor %}
             <div class="view-all-recent">
-                <a href="{{ url_for('view_metadata') }}" class="btn-view-all">
+                <!-- FIXED: Use blueprint endpoint -->
+                <a href="{{ url_for('metadata.view_metadata') }}" class="btn-view-all">
                     <i class="fas fa-list"></i>
                     View All Records
                 </a>
@@ -694,16 +698,19 @@
                 <h3><i class="fas fa-download"></i> Extract New Assessments</h3>
             </div>
             <div class="form-content">
-                <form method="POST">
+                <!-- FIXED: Form action uses blueprint endpoint -->
+                <form method="POST" action="{{ url_for('main.index') }}">
                     <!-- Required Fields -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="country" class="form-label">Country: <span class="text-danger">*</span></label>
                             <select class="form-select" id="country" name="country" required>
                                 <option value="">Select Country</option>
-                                {% for country in filter_options.countries %}
-                                <option value="{{ country }}">{{ country }}</option>
-                                {% endfor %}
+                                {% if filter_options and filter_options.countries %}
+                                    {% for country in filter_options.countries %}
+                                    <option value="{{ country }}">{{ country }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
                         
@@ -711,9 +718,11 @@
                             <label for="format" class="form-label">Document Format: <span class="text-danger">*</span></label>
                             <select class="form-select" id="format" name="format" required>
                                 <option value="">Select Format</option>
-                                {% for format in filter_options.formats %}
-                                <option value="{{ format }}">{{ format }}</option>
-                                {% endfor %}
+                                {% if filter_options and filter_options.formats %}
+                                    {% for format in filter_options.formats %}
+                                    <option value="{{ format }}">{{ format }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
                     </div>
@@ -740,9 +749,11 @@
                             <label for="theme" class="form-label">Theme:</label>
                             <select class="form-select" id="theme" name="theme">
                                 <option value="">Any Theme</option>
-                                {% for theme in filter_options.themes %}
-                                <option value="{{ theme }}">{{ theme }}</option>
-                                {% endfor %}
+                                {% if filter_options and filter_options.themes %}
+                                    {% for theme in filter_options.themes %}
+                                    <option value="{{ theme }}">{{ theme }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
 
@@ -750,9 +761,11 @@
                             <label for="source" class="form-label">Source:</label>
                             <select class="form-select" id="source" name="source">
                                 <option value="">Any Source</option>
-                                {% for source in filter_options.sources %}
-                                <option value="{{ source }}">{{ source }}</option>
-                                {% endfor %}
+                                {% if filter_options and filter_options.sources %}
+                                    {% for source in filter_options.sources %}
+                                    <option value="{{ source }}">{{ source }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
 
@@ -760,9 +773,11 @@
                             <label for="language" class="form-label">Language:</label>
                             <select class="form-select" id="language" name="language">
                                 <option value="">Any Language</option>
-                                {% for language in filter_options.languages %}
-                                <option value="{{ language }}">{{ language }}</option>
-                                {% endfor %}
+                                {% if filter_options and filter_options.languages %}
+                                    {% for language in filter_options.languages %}
+                                    <option value="{{ language }}">{{ language }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
                     </div>
@@ -893,8 +908,8 @@
                 </div>
             `;
             
-            // Fetch record details
-            fetch(`/api/record/${recordId}`)
+            // FIXED: Use correct blueprint endpoint
+            fetch(`{{ url_for('manage.get_record_details', record_id=0) }}`.replace('0', recordId))
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
@@ -908,7 +923,7 @@
                     }
                     
                     // Display record details
-                    modalBody.innerHTML = formatRecordDetails(data);
+                    modalBody.innerHTML = formatRecordDetails(data.record || data);
                 })
                 .catch(error => {
                     modalBody.innerHTML = `

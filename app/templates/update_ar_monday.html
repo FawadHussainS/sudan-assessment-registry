@@ -1,0 +1,412 @@
+<!-- filepath: c:\Users\Test\Sudan-Assessment Registry\templates\update_ar_monday.html -->
+{% extends "base.html" %}
+
+{% block title %}Monday.com Integration - OCHA Registry{% endblock %}
+
+{% block extra_head %}
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .integration-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .info-card {
+            background: var(--ocha-light-blue);
+            border-left: 4px solid var(--ocha-blue);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--ocha-border);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--ocha-blue);
+            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+        }
+        
+        .form-text {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .btn-primary {
+            background: var(--ocha-blue);
+            border: 1px solid var(--ocha-blue);
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary:hover {
+            background: var(--ocha-dark-blue);
+            border-color: var(--ocha-dark-blue);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--ocha-gray);
+            border-color: var(--ocha-gray);
+            cursor: not-allowed;
+        }
+        
+        .results-section {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--ocha-green);
+        }
+        
+        .results-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--ocha-blue), var(--ocha-dark-blue));
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .quick-actions {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--ocha-border);
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            border: 1px solid var(--ocha-blue);
+            color: var(--ocha-blue);
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .monday-logo {
+            width: 24px;
+            height: 24px;
+            background: #ff6b6b;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-info {
+            background: var(--ocha-light-blue);
+            color: var(--ocha-dark-blue);
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        @media (max-width: 768px) {
+            .integration-section {
+                padding: 16px;
+            }
+            
+            .results-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <!-- FIXED: Use blueprint endpoints -->
+    <a href="{{ url_for('main.index') }}">Home</a> / <a href="{{ url_for('monday.update_ar_monday') }}">Monday.com Integration</a>
+</div>
+{% endblock %}
+
+{% block page_title %}Monday.com Integration{% endblock %}
+{% block page_subtitle %}Import assessment data from Monday.com boards{% endblock %}
+
+{% block content %}
+    <!-- Status Information -->
+    <div class="info-card">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+            <div class="monday-logo">M</div>
+            <h4 style="margin: 0; color: var(--ocha-blue);">Monday.com Data Integration</h4>
+            <div class="status-indicator status-info">
+                <i class="fas fa-info-circle"></i>
+                <span>Active Integration</span>
+            </div>
+        </div>
+        <p><strong>Account:</strong> ochanaras@un.org</p>
+        <p><strong>Board URL:</strong> <a href="https://un-ocha.monday.com/boards/1246796913" target="_blank" rel="noopener">
+            <i class="fas fa-external-link-alt"></i> View Board on Monday.com
+        </a></p>
+        <p><strong>Integration Type:</strong> Assessment Registry Data Sync</p>
+        <p style="margin-bottom: 0;"><strong>Note:</strong> This will fetch data from Monday.com and check for duplicates against existing database records.</p>
+    </div>
+
+    <!-- Debug Information (if in debug mode) -->
+    {% if config.DEBUG %}
+    <div class="debug-info">
+        <strong>Debug Info:</strong><br>
+        Method: {{ request.method }}<br>
+        Endpoint: {{ request.endpoint }}<br>
+        Blueprint: monday<br>
+        Route: {{ url_for('monday.update_ar_monday') }}
+    </div>
+    {% endif %}
+
+    <!-- Integration Form -->
+    <div class="integration-section">
+        <h3><i class="fas fa-download"></i> Fetch Data from Monday.com</h3>
+        <p>Configure and execute data synchronization from your Monday.com board.</p>
+        
+        <!-- FIXED: Form action uses blueprint endpoint -->
+        <form method="POST" action="{{ url_for('monday.update_ar_monday') }}" id="mondayForm">
+            <div class="form-group">
+                <label for="api_token" class="form-label">
+                    <i class="fas fa-key"></i> API Token *
+                </label>
+                <input type="password" class="form-control" id="api_token" name="api_token" required 
+                       placeholder="Enter your Monday.com API token">
+                <div class="form-text">
+                    <i class="fas fa-lock"></i> Your API token is encrypted and not stored permanently. 
+                    <a href="https://developer.monday.com/api-reference/docs/authentication" target="_blank" rel="noopener">
+                        Learn how to get your API token
+                    </a>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="board_id" class="form-label">
+                    <i class="fas fa-table"></i> Board ID
+                </label>
+                <input type="number" class="form-control" id="board_id" name="board_id" value="1246796913">
+                <div class="form-text">
+                    <i class="fas fa-info-circle"></i> Monday.com board ID (default: 1246796913 - Assessment Registry Board)
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="limit" class="form-label">
+                    <i class="fas fa-list-ol"></i> Record Limit
+                </label>
+                <input type="number" class="form-control" id="limit" name="limit" value="100" min="1" max="1000">
+                <div class="form-text">
+                    <i class="fas fa-info-circle"></i> Maximum number of items to fetch (1-1000). Start with smaller numbers for testing.
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-download"></i> 
+                <span id="submitText">Fetch Data from Monday.com</span>
+            </button>
+        </form>
+        
+        <div class="quick-actions">
+            <h5>Quick Actions</h5>
+            <a href="{{ url_for('metadata.view_metadata') }}" class="btn-outline-primary">
+                <i class="fas fa-table"></i> View All Records
+            </a>
+            <a href="{{ url_for('manage.manage_database') }}" class="btn-outline-primary">
+                <i class="fas fa-cogs"></i> Manage Database
+            </a>
+            <a href="{{ url_for('main.index') }}" class="btn-outline-primary">
+                <i class="fas fa-home"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    {% if results %}
+    <div class="results-section">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+            <div class="status-indicator status-success">
+                <i class="fas fa-check-circle"></i>
+                <span>Sync Completed</span>
+            </div>
+            <h3 style="margin: 0;">Integration Results</h3>
+        </div>
+        
+        <p><strong>Data synchronization completed successfully!</strong></p>
+        
+        <div class="results-stats">
+            <div class="stat-card">
+                <div class="stat-number">{{ results.stats.total_fetched or 0 }}</div>
+                <div class="stat-label">Total Fetched</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--ocha-green), #1e7e34);">
+                <div class="stat-number">{{ results.stats.new_count or 0 }}</div>
+                <div class="stat-label">New Records Added</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--ocha-orange), #d39e00);">
+                <div class="stat-number">{{ results.stats.duplicate_count or 0 }}</div>
+                <div class="stat-label">Duplicates Skipped</div>
+            </div>
+            {% if results.stats.error_count %}
+            <div class="stat-card" style="background: linear-gradient(135deg, var(--ocha-red), #bd2130);">
+                <div class="stat-number">{{ results.stats.error_count }}</div>
+                <div class="stat-label">Errors</div>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if results.stats.new_count > 0 %}
+        <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
+            <strong>Success!</strong> {{ results.stats.new_count }} new assessment records have been added to your database.
+            <div style="margin-top: 10px;">
+                <a href="{{ url_for('metadata.view_metadata') }}" class="btn-outline-primary">
+                    <i class="fas fa-eye"></i> View New Records
+                </a>
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if results.details %}
+        <div style="margin-top: 20px;">
+            <h5>Processing Details</h5>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto;">
+                {% for detail in results.details %}
+                <div>{{ detail }}</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('mondayForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitText = document.getElementById('submitText');
+        
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            
+            // Validate required fields
+            const apiToken = document.getElementById('api_token').value;
+            const boardId = document.getElementById('board_id').value;
+            const limit = document.getElementById('limit').value;
+            
+            if (!apiToken.trim()) {
+                alert('API token is required');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!boardId.trim()) {
+                alert('Board ID is required');
+                e.preventDefault();
+                return false;
+            }
+            
+            if (!limit || limit < 1 || limit > 1000) {
+                alert('Limit must be between 1 and 1000');
+                e.preventDefault();
+                return false;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitText.textContent = 'Fetching Data...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + submitText.textContent;
+            
+            console.log('Form validation passed, submitting...');
+            return true;
+        });
+        
+        // Auto-focus on API token field
+        document.getElementById('api_token').focus();
+    });
+    
+    // Add some helpful tooltips
+    function showTooltip(element, message) {
+        // Simple tooltip implementation
+        element.setAttribute('title', message);
+    }
+    
+    // Add tooltips to form elements
+    showTooltip(document.getElementById('api_token'), 'Get this from your Monday.com account settings');
+    showTooltip(document.getElementById('board_id'), 'Found in your Monday.com board URL');
+    showTooltip(document.getElementById('limit'), 'Start with 10-50 for testing, then increase');
+</script>
+{% endblock %}
