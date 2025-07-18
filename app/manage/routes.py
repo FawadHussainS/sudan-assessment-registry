@@ -94,26 +94,43 @@ def get_filter_options():
             'all_countries': []
         }
         
-        if not all_records:
-            return options
+        # Initialize country count dictionaries
+        country_counts = {}
+        secondary_country_counts = {}
+        all_country_counts = {}
         
-        # Extract unique values
+        if not all_records:
+            return options, country_counts, secondary_country_counts, all_country_counts
+        
+        # Extract unique values and count occurrences
         primary_countries = set()
         secondary_countries = set()
         
         for record in all_records:
-            # Primary countries
+            # Primary countries - ensure proper capitalization
             primary_country = record.get('primary_country', '').strip()
             if primary_country:
+                # Ensure proper capitalization (first letter capital)
+                primary_country = primary_country.title()
                 primary_countries.add(primary_country)
+                country_counts[primary_country] = country_counts.get(primary_country, 0) + 1
+                all_country_counts[primary_country] = all_country_counts.get(primary_country, 0) + 1
             
-            # Secondary countries (from country field)
+            # Secondary countries (from country field) - parse comma-separated and remove duplicates
             all_countries_str = record.get('country', '').strip()
             if all_countries_str:
-                countries = [c.strip() for c in all_countries_str.split(',')]
-                for country in countries:
-                    if country and country != primary_country:
+                # Split by comma and clean up
+                countries = [c.strip().title() for c in all_countries_str.split(',') if c.strip()]
+                # Remove duplicates and primary country
+                unique_countries = set(countries)
+                if primary_country:
+                    unique_countries.discard(primary_country)
+                
+                for country in unique_countries:
+                    if country:  # Additional check for non-empty countries
                         secondary_countries.add(country)
+                        secondary_country_counts[country] = secondary_country_counts.get(country, 0) + 1
+                        all_country_counts[country] = all_country_counts.get(country, 0) + 1
         
         # Combine all countries
         all_countries = primary_countries.union(secondary_countries)
@@ -122,7 +139,7 @@ def get_filter_options():
         options['secondary_countries'] = sorted(list(secondary_countries))
         options['all_countries'] = sorted(list(all_countries))
         
-        return options
+        return options, country_counts, secondary_country_counts, all_country_counts
         
     except Exception as e:
         current_app.logger.error(f"Error getting filter options: {e}")
@@ -130,7 +147,7 @@ def get_filter_options():
             'primary_countries': [],
             'secondary_countries': [],
             'all_countries': []
-        }
+        }, {}, {}, {}
 
 def apply_filters(records, filters):
     """Apply client-side filtering to records."""
@@ -155,17 +172,22 @@ def apply_filters(records, filters):
         
         # Primary country filter
         if filters.get('filterPrimaryCountry'):
-            primary_country = record.get('primary_country', '')
+            primary_country = record.get('primary_country', '').strip().title()
             if filters['filterPrimaryCountry'] != primary_country:
                 include_record = False
                 continue
         
-        # Secondary country filter
+        # Secondary country filter (multi-select)
         if filters.get('filterSecondaryCountry'):
-            all_countries = record.get('country', '')
-            if filters['filterSecondaryCountry'] not in all_countries:
-                include_record = False
-                continue
+            selected_secondary_countries = [c.strip() for c in filters['filterSecondaryCountry'].split(',') if c.strip()]
+            if selected_secondary_countries:
+                all_countries = record.get('country', '')
+                record_countries = [c.strip().title() for c in all_countries.split(',') if c.strip()]
+                # Check if any of the selected secondary countries are in the record's countries
+                has_any_selected = any(selected in record_countries for selected in selected_secondary_countries)
+                if not has_any_selected:
+                    include_record = False
+                    continue
         
         # Any country filter
         if filters.get('filterCountry'):
@@ -201,8 +223,8 @@ def manage_database():
         # Get database statistics using existing utility
         db_stats = get_database_stats(DB_PATH)
         
-        # Get filter options
-        filter_options = get_filter_options()
+        # Get filter options and country counts
+        filter_options, country_counts, secondary_country_counts, all_country_counts = get_filter_options()
         
         # Get all records using existing utility
         all_records = get_all_metadata(DB_PATH)
@@ -247,6 +269,9 @@ def manage_database():
                              data=data,
                              db_stats=db_stats,
                              filter_options=filter_options,
+                             country_counts=country_counts,
+                             secondary_country_counts=secondary_country_counts,
+                             all_country_counts=all_country_counts,
                              request=request)
         
     except Exception as e:
@@ -268,6 +293,9 @@ def manage_database():
                                  'secondary_countries': [],
                                  'all_countries': []
                              },
+                             country_counts={},
+                             secondary_country_counts={},
+                             all_country_counts={},
                              request=request,
                              error="An error occurred while loading the database management page.")
 

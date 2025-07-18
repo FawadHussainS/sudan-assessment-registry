@@ -148,35 +148,92 @@ def get_database_stats(db_path):
         c.execute("SELECT COUNT(*) as count FROM assessments")
         stats['total_records'] = c.fetchone()['count']
         
-        # Unique countries
-        c.execute("SELECT COUNT(DISTINCT country) as count FROM assessments WHERE country IS NOT NULL AND country != ''")
-        stats['unique_countries'] = c.fetchone()['count']
+        # Unique countries (from both primary_country and country fields)
+        c.execute("""
+            SELECT COUNT(DISTINCT country_name) as count FROM (
+                SELECT primary_country as country_name FROM assessments 
+                WHERE primary_country IS NOT NULL AND primary_country != ''
+                UNION
+                SELECT TRIM(country_name) as country_name FROM (
+                    SELECT SUBSTR(country || ',', 1, INSTR(country || ',', ',') - 1) as country_name FROM assessments
+                    WHERE country IS NOT NULL AND country != ''
+                    UNION ALL
+                    SELECT TRIM(SUBSTR(country || ',', INSTR(country || ',', ',') + 1)) as country_name FROM assessments
+                    WHERE country IS NOT NULL AND country != '' AND INSTR(country, ',') > 0
+                ) WHERE country_name != ''
+            ) WHERE country_name IS NOT NULL AND country_name != ''
+        """)
+        unique_countries_result = c.fetchone()
+        stats['unique_countries'] = unique_countries_result['count'] if unique_countries_result else 0
         
         # Unique sources
         c.execute("SELECT COUNT(DISTINCT source) as count FROM assessments WHERE source IS NOT NULL AND source != ''")
         stats['unique_sources'] = c.fetchone()['count']
         
-        # Records in last 7 days
-        seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
-        c.execute("SELECT COUNT(*) as count FROM assessments WHERE created_at >= ?", (seven_days_ago,))
-        stats['last_7_days'] = c.fetchone()['count']
-        
-        # Countries list with counts
+        # Records in last 7 days - check both created_at and date_created
+        seven_days_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
         c.execute("""
-            SELECT country, COUNT(*) as count 
-            FROM assessments 
-            WHERE country IS NOT NULL AND country != '' 
-            GROUP BY country 
+            SELECT COUNT(*) as count FROM assessments 
+            WHERE (created_at >= ? OR date_created >= ?)
+        """, (seven_days_ago, seven_days_ago))
+        stats['records_last_7_days'] = c.fetchone()['count']
+        
+        # Top 10 countries by frequency - include both primary and secondary countries
+        c.execute("""
+            WITH country_list AS (
+                SELECT primary_country as country_name FROM assessments 
+                WHERE primary_country IS NOT NULL AND primary_country != ''
+                UNION ALL
+                SELECT TRIM(country_part) as country_name FROM (
+                    SELECT 
+                        CASE 
+                            WHEN INSTR(country, ';') > 0 THEN 
+                                SUBSTR(country, 1, INSTR(country, ';') - 1)
+                            WHEN INSTR(country, ',') > 0 THEN 
+                                SUBSTR(country, 1, INSTR(country, ',') - 1)
+                            ELSE country
+                        END as country_part
+                    FROM assessments WHERE country IS NOT NULL AND country != ''
+                    UNION ALL
+                    SELECT 
+                        TRIM(SUBSTR(country, INSTR(country, ';') + 1)) as country_part
+                    FROM assessments 
+                    WHERE country IS NOT NULL AND country != '' AND INSTR(country, ';') > 0
+                    UNION ALL
+                    SELECT 
+                        TRIM(SUBSTR(country, INSTR(country, ',') + 1)) as country_part
+                    FROM assessments 
+                    WHERE country IS NOT NULL AND country != '' AND INSTR(country, ',') > 0 AND INSTR(country, ';') = 0
+                )
+                WHERE country_part IS NOT NULL AND country_part != ''
+            )
+            SELECT country_name, COUNT(*) as count 
+            FROM country_list 
+            WHERE country_name IS NOT NULL AND country_name != ''
+            GROUP BY country_name 
             ORDER BY count DESC 
             LIMIT 10
         """)
-        stats['countries_list'] = [dict(row) for row in c.fetchall()]
+        top_countries = c.fetchall()
+        stats['top_countries'] = [(row['country_name'], row['count']) for row in top_countries]
+        
+        # Top 10 sources by frequency
+        c.execute("""
+            SELECT source, COUNT(*) as count 
+            FROM assessments 
+            WHERE source IS NOT NULL AND source != '' 
+            GROUP BY source 
+            ORDER BY count DESC 
+            LIMIT 10
+        """)
+        top_sources = c.fetchall()
+        stats['top_sources'] = [(row['source'], row['count']) for row in top_sources]
         
         # Recent records (last 5)
         c.execute("""
             SELECT id, title, country, primary_country, source, format, date_created, created_at
             FROM assessments 
-            ORDER BY created_at DESC 
+            ORDER BY COALESCE(created_at, date_created) DESC 
             LIMIT 5
         """)
         stats['recent_records'] = [dict(row) for row in c.fetchall()]
@@ -199,8 +256,9 @@ def get_database_stats(db_path):
             'total_records': 0,
             'unique_countries': 0,
             'unique_sources': 0,
-            'last_7_days': 0,
-            'countries_list': [],
+            'records_last_7_days': 0,
+            'top_countries': [],
+            'top_sources': [],
             'recent_records': []
         }
 
