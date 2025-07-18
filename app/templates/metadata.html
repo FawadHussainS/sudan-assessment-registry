@@ -383,6 +383,82 @@
                 min-width: 120px !important;
             }
         }
+
+        #sourceFilter option[value="all"] {
+            background-color: #f8f9fa !important;
+            font-weight: bold !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            color: #495057 !important;
+        }
+
+        #sourceFilter option[value="all"]:checked {
+            background-color: var(--ocha-blue) !important;
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        /* Bulk selection styles */
+        .bulk-actions {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: block;
+        }
+
+        .bulk-actions .selected-count {
+            font-weight: bold;
+            color: var(--ocha-blue);
+        }
+
+        /* Checkbox styling */
+        .record-checkbox {
+            transform: scale(1.2);
+            margin-right: 8px;
+        }
+
+        #selectAllCheckbox {
+            transform: scale(1.2);
+        }
+
+        /* Dynamic button states */
+        .download-btn {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn.filtered {
+            background-color: #ffc107;
+            border-color: #ffc107;
+            color: #000;
+        }
+
+        .download-btn.selected {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .download-btn .badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 {% endblock %}
 
@@ -403,15 +479,37 @@
                 ({{ data|length }} records)
             </small>
         </div>
-        <a href="{{ url_for('metadata.download_metadata', format='csv') }}" class="btn btn-outline-primary btn-sm" style="min-width: 150px;">
-            <i class="fas fa-download"></i> Download CSV
-        </a>
-        <a href="{{ url_for('metadata.download_metadata', format='excel') }}" class="btn btn-outline-success btn-sm" style="min-width: 150px;">
-            <i class="fas fa-file-excel"></i> Download Excel
-        </a>
+        <button id="csvDownloadBtn" class="btn btn-outline-primary btn-sm download-btn" style="min-width: 150px;" onclick="downloadData('csv')">
+            <i class="fas fa-download"></i> <span class="btn-text">Download CSV</span>
+            <span class="badge" id="csvBadge" style="display: none;"></span>
+        </button>
+        <button id="excelDownloadBtn" class="btn btn-outline-success btn-sm download-btn" style="min-width: 150px;" onclick="downloadData('excel')">
+            <i class="fas fa-file-excel"></i> <span class="btn-text">Download Excel</span>
+            <span class="badge" id="excelBadge" style="display: none;"></span>
+        </button>
         <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm" style="min-width: 150px;">
             <i class="fas fa-plus"></i> Extract New Records
         </a>
+    </div>
+
+    <!-- Bulk Actions Panel -->
+    <div class="bulk-actions" id="bulkActions">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <span class="selected-count" id="selectedCount">0 records selected</span>
+            </div>
+            <div class="col-md-8 text-end">
+                <button class="btn btn-outline-primary btn-sm" onclick="downloadSelected('csv')">
+                    <i class="fas fa-download"></i> Download Selected (CSV)
+                </button>
+                <button class="btn btn-outline-success btn-sm" onclick="downloadSelected('excel')">
+                    <i class="fas fa-file-excel"></i> Download Selected (Excel)
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Search and Filter -->
@@ -470,8 +568,11 @@
         <table class="table table-striped table-hover" id="dataTable">
             <thead>
                 <tr>
-                    <th width="5%">#</th>
-                    <th width="30%">Title</th>
+                    <th width="3%">
+                        <input type="checkbox" id="selectAllCheckbox" title="Select All">
+                    </th>
+                    <th width="4%">#</th>
+                    <th width="28%">Title</th>
                     <th width="12%">Country</th>
                     <th width="15%">Source</th>
                     <th width="10%">Format</th>
@@ -482,7 +583,10 @@
             </thead>
             <tbody>
                 {% for record in data %}
-                <tr>
+                <tr data-record-id="{{ record.id }}">
+                    <td>
+                        <input type="checkbox" class="record-checkbox" value="{{ record.id }}" title="Select this record">
+                    </td>
                     <td>{{ loop.index }}</td>
                     <td>
                         <div class="text-truncate-custom" title="{{ record.title }}">
@@ -622,9 +726,14 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        populateFilters();
-        setupSearch();
-        setLastUpdated();
+        // Add a small delay to ensure all elements are fully rendered
+        setTimeout(function() {
+            populateFilters();
+            setupSearch();
+            setLastUpdated();
+            setupBulkSelection();
+            updateDownloadButtons();
+        }, 100);
     });
 
     function setLastUpdated() {
@@ -643,17 +752,29 @@
 
     function populateFilters() {
         const table = document.getElementById('dataTable');
-        if (!table) return;
+        if (!table) {
+            console.log('Table not found');
+            return;
+        }
 
-        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        const tbody = table.getElementsByTagName('tbody')[0];
+        if (!tbody) {
+            console.log('Table body not found');
+            return;
+        }
+
+        const rows = tbody.getElementsByTagName('tr');
+        console.log('Found rows:', rows.length);
+
         const countries = new Set();
         const formats = new Set();
         const sources = new Set();
         const themes = new Set();
 
         for (let row of rows) {
+            // Updated cell indices to account for checkbox column
             // Country
-            const countryCell = row.cells[2];
+            const countryCell = row.cells[3]; // was cells[2]
             if (countryCell) {
                 const countryBadge = countryCell.querySelector('.recent-meta-badge.country .recent-meta-value');
                 if (countryBadge && countryBadge.textContent.trim() !== 'Multiple Countries') {
@@ -662,11 +783,13 @@
             }
 
             // Source (collect all badges)
-            const sourceCell = row.cells[3];
+            const sourceCell = row.cells[4]; // was cells[3]
             if (sourceCell) {
                 const sourceBadges = sourceCell.querySelectorAll('.recent-meta-badge.organization .recent-meta-value');
+                console.log('Source badges found in row:', sourceBadges.length);
                 sourceBadges.forEach(badge => {
                     const val = badge.textContent.trim();
+                    console.log('Source value:', val);
                     if (val && val !== 'Unknown Source') {
                         sources.add(val);
                     }
@@ -674,7 +797,7 @@
             }
 
             // Format
-            const formatCell = row.cells[4];
+            const formatCell = row.cells[5]; // was cells[4]
             if (formatCell) {
                 const formatBadge = formatCell.querySelector('.recent-meta-badge.format .recent-meta-value');
                 if (formatBadge) {
@@ -683,7 +806,7 @@
             }
 
             // Theme
-            const themeCell = row.cells[6];
+            const themeCell = row.cells[7]; // was cells[6]
             if (themeCell) {
                 const themeBadges = themeCell.querySelectorAll('.recent-meta-badge .recent-meta-value');
                 themeBadges.forEach(badge => {
@@ -694,13 +817,26 @@
             }
         }
 
+        console.log('Sources collected:', Array.from(sources));
+        console.log('Countries collected:', Array.from(countries));
+        console.log('Formats collected:', Array.from(formats));
+        console.log('Themes collected:', Array.from(themes));
+
         // Populate filters
         const setOptions = (id, values, label) => {
             const select = document.getElementById(id);
             if (!select) return;
             
+            select.innerHTML = ''; // Clear previous options
+            
+            // Add "All" option for all filters including multi-select
             if (id === 'sourceFilter') {
-                select.innerHTML = ''; // No "All" option for multi-select
+                const allOption = document.createElement('option');
+                allOption.value = 'all';
+                allOption.textContent = 'All Sources';
+                allOption.style.fontWeight = 'bold';
+                allOption.style.backgroundColor = '#f8f9fa';
+                select.appendChild(allOption);
             } else {
                 select.innerHTML = `<option value="">All ${label}</option>`;
             }
@@ -760,16 +896,17 @@
         let visibleCount = 0;
 
         for (let row of rows) {
-            const title = row.cells[1].textContent.toLowerCase();
-            const country = row.cells[2].textContent;
-            const sourceCell = row.cells[3];
+            // Updated cell indices to account for checkbox column
+            const title = row.cells[2].textContent.toLowerCase(); // was cells[1]
+            const country = row.cells[3].textContent; // was cells[2]
+            const sourceCell = row.cells[4]; // was cells[3]
             const sourceBadges = sourceCell.querySelectorAll('.recent-meta-badge.organization .recent-meta-value');
             const sources = Array.from(sourceBadges).map(badge => badge.textContent.trim());
-            const format = row.cells[4].textContent;
-            const dateCell = row.cells[5];
+            const format = row.cells[5].textContent; // was cells[4]
+            const dateCell = row.cells[6]; // was cells[5]
             const dateBadge = dateCell.querySelector('.recent-meta-badge.date .recent-meta-value');
             const dateText = dateBadge ? dateBadge.textContent.trim() : '';
-            const theme = row.cells[6].textContent;
+            const theme = row.cells[7].textContent; // was cells[6]
 
             const matchesSearch = title.includes(searchTerm) ||
                                   country.toLowerCase().includes(searchTerm) ||
@@ -777,7 +914,12 @@
 
             const matchesCountry = !countryFilter || country.includes(countryFilter);
             const matchesFormat = !formatFilter || format.includes(formatFilter);
-            const matchesSource = sourceFilters.length === 0 || sources.some(src => sourceFilters.includes(src));
+            
+            // Updated source filtering to handle "All Sources" option
+            const matchesSource = sourceFilters.length === 0 || 
+                                 sourceFilters.includes('all') || 
+                                 sources.some(src => sourceFilters.includes(src));
+            
             const matchesTheme = !themeFilter || theme.includes(themeFilter);
             
             // Date range filtering
@@ -815,17 +957,29 @@
         if (recordCountLabel) {
             recordCountLabel.textContent = `(${visibleCount} records)`;
         }
+
+        // Update download buttons when filtering changes
+        updateDownloadButtons();
     }
 
     function clearFilters() {
         document.getElementById('searchInput').value = '';
         document.getElementById('countryFilter').value = '';
         document.getElementById('formatFilter').value = '';
-        document.getElementById('sourceFilter').selectedIndex = -1; // Clear multi-select
+        
+        // Clear multi-select and select "All Sources" by default
+        const sourceFilter = document.getElementById('sourceFilter');
+        sourceFilter.selectedIndex = -1; // Clear all selections
+        const allSourcesOption = sourceFilter.querySelector('option[value="all"]');
+        if (allSourcesOption) {
+            allSourcesOption.selected = true;
+        }
+        
         document.getElementById('themeFilter').value = '';
         document.getElementById('dateFromFilter').value = '';
         document.getElementById('dateToFilter').value = '';
         filterTable();
+        updateDownloadButtons();
     }
 
     function viewDetails(recordId) {
@@ -884,5 +1038,221 @@
                 alert('Error loading record details');
             });
     }
+
+    // Bulk selection functionality
+    let selectedRecords = new Set();
+    let isFiltered = false;
+
+    function setupBulkSelection() {
+        // Setup select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.record-checkbox');
+                const visibleCheckboxes = Array.from(checkboxes).filter(cb => {
+                    const row = cb.closest('tr');
+                    return row && row.style.display !== 'none';
+                });
+
+                visibleCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    if (this.checked) {
+                        selectedRecords.add(checkbox.value);
+                    } else {
+                        selectedRecords.delete(checkbox.value);
+                    }
+                });
+                updateBulkActions();
+                updateDownloadButtons();
+            });
+        }
+
+        // Setup individual checkboxes
+        const recordCheckboxes = document.querySelectorAll('.record-checkbox');
+        recordCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedRecords.add(this.value);
+                } else {
+                    selectedRecords.delete(this.value);
+                }
+                updateSelectAllState();
+                updateBulkActions();
+                updateDownloadButtons();
+            });
+        });
+    }
+
+    function updateSelectAllState() {
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (!selectAllCheckbox) return;
+
+        const visibleCheckboxes = Array.from(document.querySelectorAll('.record-checkbox')).filter(cb => {
+            const row = cb.closest('tr');
+            return row && row.style.display !== 'none';
+        });
+
+        const checkedVisibleCount = visibleCheckboxes.filter(cb => cb.checked).length;
+        
+        if (checkedVisibleCount === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (checkedVisibleCount === visibleCheckboxes.length) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+            selectAllCheckbox.checked = false;
+        }
+    }
+
+    function updateBulkActions() {
+        const bulkActions = document.getElementById('bulkActions');
+        const selectedCount = document.getElementById('selectedCount');
+        
+        if (selectedRecords.size > 0) {
+            bulkActions.classList.add('show');
+            selectedCount.textContent = `${selectedRecords.size} record${selectedRecords.size === 1 ? '' : 's'} selected`;
+        } else {
+            bulkActions.classList.remove('show');
+        }
+    }
+
+    function clearSelection() {
+        selectedRecords.clear();
+        const checkboxes = document.querySelectorAll('.record-checkbox, #selectAllCheckbox');
+        checkboxes.forEach(cb => cb.checked = false);
+        updateBulkActions();
+        updateDownloadButtons();
+    }
+
+    function updateDownloadButtons() {
+        const csvBtn = document.getElementById('csvDownloadBtn');
+        const excelBtn = document.getElementById('excelDownloadBtn');
+        const csvBadge = document.getElementById('csvBadge');
+        const excelBadge = document.getElementById('excelBadge');
+
+        // Reset button states
+        csvBtn.className = 'btn btn-outline-primary btn-sm download-btn';
+        excelBtn.className = 'btn btn-outline-success btn-sm download-btn';
+        csvBadge.style.display = 'none';
+        excelBadge.style.display = 'none';
+
+        // Check if filtering is active
+        const searchTerm = document.getElementById('searchInput').value;
+        const countryFilter = document.getElementById('countryFilter').value;
+        const formatFilter = document.getElementById('formatFilter').value;
+        const sourceFilterSelect = document.getElementById('sourceFilter');
+        const sourceFilters = Array.from(sourceFilterSelect.selectedOptions).map(opt => opt.value).filter(val => val !== 'all');
+        const themeFilter = document.getElementById('themeFilter').value;
+        const dateFromFilter = document.getElementById('dateFromFilter').value;
+        const dateToFilter = document.getElementById('dateToFilter').value;
+
+        isFiltered = searchTerm || countryFilter || formatFilter || sourceFilters.length > 0 || themeFilter || dateFromFilter || dateToFilter;
+
+        if (selectedRecords.size > 0) {
+            // Selection mode
+            csvBtn.classList.add('selected');
+            excelBtn.classList.add('selected');
+            csvBtn.querySelector('.btn-text').textContent = `Download Selected CSV`;
+            excelBtn.querySelector('.btn-text').textContent = `Download Selected Excel`;
+            csvBadge.textContent = selectedRecords.size;
+            excelBadge.textContent = selectedRecords.size;
+            csvBadge.style.display = 'block';
+            excelBadge.style.display = 'block';
+        } else if (isFiltered) {
+            // Filtered mode
+            csvBtn.classList.add('filtered');
+            excelBtn.classList.add('filtered');
+            csvBtn.querySelector('.btn-text').textContent = 'Download Filtered CSV';
+            excelBtn.querySelector('.btn-text').textContent = 'Download Filtered Excel';
+            
+            // Count visible records
+            const visibleCount = document.querySelectorAll('#dataTable tbody tr[style=""], #dataTable tbody tr:not([style*="none"])').length;
+            csvBadge.textContent = visibleCount;
+            excelBadge.textContent = visibleCount;
+            csvBadge.style.display = 'block';
+            excelBadge.style.display = 'block';
+        } else {
+            // Normal mode
+            csvBtn.querySelector('.btn-text').textContent = 'Download CSV';
+            excelBtn.querySelector('.btn-text').textContent = 'Download Excel';
+        }
+    }
+
+    function downloadData(format) {
+        if (selectedRecords.size > 0) {
+            downloadSelected(format);
+        } else if (isFiltered) {
+            downloadFiltered(format);
+        } else {
+            // Download all data
+            window.location.href = `{{ url_for('metadata.download_metadata') }}?format=${format}`;
+        }
+    }
+
+    function downloadSelected(format) {
+        if (selectedRecords.size === 0) {
+            alert('Please select records to download');
+            return;
+        }
+
+        const selectedIds = Array.from(selectedRecords).join(',');
+        window.location.href = `{{ url_for('metadata.download_metadata') }}?format=${format}&selected_ids=${selectedIds}`;
+    }
+
+    function downloadFiltered(format) {
+        // Get current filter state
+        const filters = {
+            search: document.getElementById('searchInput').value,
+            country: document.getElementById('countryFilter').value,
+            format: document.getElementById('formatFilter').value,
+            sources: Array.from(document.getElementById('sourceFilter').selectedOptions).map(opt => opt.value).filter(Boolean),
+            theme: document.getElementById('themeFilter').value,
+            dateFrom: document.getElementById('dateFromFilter').value,
+            dateTo: document.getElementById('dateToFilter').value
+        };
+
+        // Send filter data to server
+        fetch('{{ url_for("metadata.get_filtered_data") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(filters)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error getting filtered data: ' + data.error);
+                return;
+            }
+            
+            if (data.record_ids.length === 0) {
+                alert('No records match your filters');
+                return;
+            }
+
+            const selectedIds = data.record_ids.join(',');
+            window.location.href = `{{ url_for('metadata.download_metadata') }}?format=${format}&selected_ids=${selectedIds}&filtered=true`;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error downloading filtered data');
+        });
+    }
+
+    // Update the existing filterTable function to call updateDownloadButtons
+    const originalFilterTable = filterTable;
+    filterTable = function() {
+        originalFilterTable();
+        updateDownloadButtons();
+        
+        // Update checkbox states after filtering
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (selectAllCheckbox) {
+            updateSelectAllState();
+        }
+    };
 </script>
 {% endblock %}
