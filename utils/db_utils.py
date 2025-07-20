@@ -1,9 +1,134 @@
 import sqlite3
 import logging
 import json
+import numpy as np
 from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger(__name__)
+
+def create_content_tables(cursor):
+    """Create tables for content extraction and vector database"""
+    
+    # Document content table for storing extracted text
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS document_content (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id INTEGER,
+        assessment_id INTEGER,
+        original_text TEXT,
+        cleaned_text TEXT,
+        extraction_method TEXT,
+        extraction_confidence REAL,
+        page_count INTEGER,
+        word_count INTEGER,
+        char_count INTEGER,
+        processing_time REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (document_id) REFERENCES document_downloads (id),
+        FOREIGN KEY (assessment_id) REFERENCES assessments (id)
+    )
+    """)
+    
+    # Document embeddings table for vector storage
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS document_embeddings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_id INTEGER,
+        chunk_id INTEGER,
+        chunk_text TEXT,
+        chunk_start_pos INTEGER,
+        chunk_end_pos INTEGER,
+        embedding_vector TEXT,
+        embedding_dimension INTEGER,
+        embedding_model TEXT,
+        similarity_score REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (content_id) REFERENCES document_content (id)
+    )
+    """)
+    
+    # Content metadata table for semantic analysis
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS content_metadata (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_id INTEGER,
+        key_terms TEXT,
+        named_entities TEXT,
+        readability_scores TEXT,
+        language_features TEXT,
+        content_statistics TEXT,
+        chunk_statistics TEXT,
+        confidence_score REAL,
+        extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (content_id) REFERENCES document_content (id)
+    )
+    """)
+    
+    # Admin districts table for geographic tagging
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS admin_districts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content_id INTEGER,
+        country_iso2 TEXT,
+        country_iso3 TEXT,
+        country_name TEXT,
+        admin_level INTEGER,
+        admin_name TEXT,
+        parent_admin TEXT,
+        confidence REAL,
+        extraction_method TEXT,
+        coordinates TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (content_id) REFERENCES document_content (id)
+    )
+    """)
+    
+    # Content processing jobs table for tracking extraction pipeline
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS content_processing_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id INTEGER,
+        job_type TEXT,
+        status TEXT DEFAULT 'pending',
+        processing_options TEXT,
+        start_time TIMESTAMP,
+        end_time TIMESTAMP,
+        processing_time REAL,
+        error_message TEXT,
+        results_summary TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (document_id) REFERENCES document_downloads (id)
+    )
+    """)
+    
+    # Create indexes for content extraction tables
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_content_document ON document_content(document_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_content_assessment ON document_content(assessment_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_content ON document_embeddings(content_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_embeddings_chunk ON document_embeddings(chunk_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_metadata_content ON content_metadata(content_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_districts_content ON admin_districts(content_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_districts_country ON admin_districts(country_iso2)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_document ON content_processing_jobs(document_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_status ON content_processing_jobs(status)")
+
+def parse_datetime(date_str):
+    """Parse datetime string from database into datetime object"""
+    if not date_str:
+        return None
+    if isinstance(date_str, datetime):
+        return date_str
+    try:
+        # Try multiple datetime formats
+        for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M:%S.%f', '%Y-%m-%d']:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        return None
+    except (ValueError, TypeError):
+        return None
 
 def init_db(db_path):
     """Initialize SQLite database with proper schema"""
@@ -38,9 +163,51 @@ def init_db(db_path):
         )
         """)
         
-        # Create index for faster queries
+        # Create document downloads tracking table
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS document_downloads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assessment_id INTEGER,
+            filename TEXT,
+            original_url TEXT,
+            file_size INTEGER,
+            download_status TEXT DEFAULT 'completed',
+            download_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            file_path TEXT,
+            mime_type TEXT,
+            checksum TEXT,
+            FOREIGN KEY (assessment_id) REFERENCES assessments (id)
+        )
+        """)
+        
+        # Create document registry table for tracking and future AI features
+        c.execute("""
+        CREATE TABLE IF NOT EXISTS document_registry (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assessment_id INTEGER,
+            download_id INTEGER,
+            document_type TEXT,
+            processing_status TEXT DEFAULT 'pending',
+            ai_summary TEXT,
+            ai_embeddings TEXT,
+            ai_keywords TEXT,
+            ai_processed_date TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (assessment_id) REFERENCES assessments (id),
+            FOREIGN KEY (download_id) REFERENCES document_downloads (id)
+        )
+        """)
+        
+        # Enhanced Content Extraction Tables
+        create_content_tables(c)
+
+        # Create indexes for faster queries
         c.execute("CREATE INDEX IF NOT EXISTS idx_report_id ON assessments(report_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_date_created ON assessments(date_created)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_download_assessment ON document_downloads(assessment_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_registry_assessment ON document_registry(assessment_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_registry_download ON document_registry(download_id)")
         
         conn.commit()
         conn.close()
@@ -336,6 +503,27 @@ def get_record_by_id(db_path, record_id):
         logger.error(f"Failed to get record by ID: {str(e)}")
         return None
 
+def get_assessment_by_id(db_path, assessment_id):
+    """Get assessment record by ID"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT * FROM humanitarian_assessments 
+            WHERE id = ?
+        ''', (assessment_id,))
+        
+        row = cursor.fetchone()
+        conn.close()
+        
+        return dict(row) if row else None
+        
+    except Exception as e:
+        logger.error(f"Error getting assessment by ID {assessment_id}: {e}")
+        return None
+
 def get_filtered_metadata(db_path, filters):
     """Get metadata with filters applied"""
     try:
@@ -371,4 +559,468 @@ def get_filtered_metadata(db_path, filters):
         
     except Exception as e:
         logger.error(f"Failed to get filtered metadata: {str(e)}")
+        return []
+
+def record_document_download(db_path, assessment_id, filename, original_url, file_path, file_size=None, mime_type=None, checksum=None):
+    """Record a document download in the database"""
+    try:
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        c.execute("""
+            INSERT INTO document_downloads 
+            (assessment_id, filename, original_url, file_path, file_size, mime_type, checksum)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (assessment_id, filename, original_url, file_path, file_size, mime_type, checksum))
+        
+        download_id = c.lastrowid
+        
+        # Also create registry entry for future AI processing
+        c.execute("""
+            INSERT INTO document_registry 
+            (assessment_id, download_id, document_type, processing_status)
+            VALUES (?, ?, ?, 'pending')
+        """, (assessment_id, download_id, 'pdf' if filename.endswith('.pdf') else 'other'))
+        
+        conn.commit()
+        conn.close()
+        logger.info(f"Recorded download: {filename} for assessment {assessment_id}")
+        return download_id
+        
+    except Exception as e:
+        logger.error(f"Failed to record document download: {str(e)}")
+        return None
+
+def get_document_downloads(db_path, assessment_id=None):
+    """Get document downloads, optionally filtered by assessment ID"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        if assessment_id:
+            c.execute("""
+                SELECT d.*, a.title, a.country, a.source 
+                FROM document_downloads d
+                JOIN assessments a ON d.assessment_id = a.id
+                WHERE d.assessment_id = ?
+                ORDER BY d.download_date DESC
+            """, (assessment_id,))
+        else:
+            c.execute("""
+                SELECT d.*, a.title, a.country, a.source 
+                FROM document_downloads d
+                JOIN assessments a ON d.assessment_id = a.id
+                ORDER BY d.download_date DESC
+            """)
+        
+        rows = c.fetchall()
+        conn.close()
+        
+        # Parse datetime fields
+        result = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict['download_date'] = parse_datetime(row_dict.get('download_date'))
+            result.append(row_dict)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to get document downloads: {str(e)}")
+        return []
+
+def get_document_registry_status(db_path, assessment_id=None):
+    """Get document registry with processing status"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        if assessment_id:
+            c.execute("""
+                SELECT r.*, d.filename, d.original_url, d.file_path, d.download_date,
+                       a.title, a.country, a.source
+                FROM document_registry r
+                JOIN document_downloads d ON r.download_id = d.id
+                JOIN assessments a ON r.assessment_id = a.id
+                WHERE r.assessment_id = ?
+                ORDER BY r.created_at DESC
+            """, (assessment_id,))
+        else:
+            c.execute("""
+                SELECT r.*, d.filename, d.original_url, d.file_path, d.download_date,
+                       a.title, a.country, a.source
+                FROM document_registry r
+                JOIN document_downloads d ON r.download_id = d.id
+                JOIN assessments a ON r.assessment_id = a.id
+                ORDER BY r.created_at DESC
+            """)
+        
+        rows = c.fetchall()
+        conn.close()
+        
+        # Parse datetime fields
+        result = []
+        for row in rows:
+            row_dict = dict(row)
+            row_dict['download_date'] = parse_datetime(row_dict.get('download_date'))
+            row_dict['ai_processed_date'] = parse_datetime(row_dict.get('ai_processed_date'))
+            row_dict['created_at'] = parse_datetime(row_dict.get('created_at'))
+            row_dict['updated_at'] = parse_datetime(row_dict.get('updated_at'))
+            result.append(row_dict)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to get document registry status: {str(e)}")
+        return []
+
+def get_assessment_with_downloads(db_path, limit=None):
+    """Get assessments with their download status"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        query = """
+            SELECT a.*, 
+                   COUNT(d.id) as download_count,
+                   GROUP_CONCAT(d.filename) as downloaded_files
+            FROM assessments a
+            LEFT JOIN document_downloads d ON a.id = d.assessment_id
+            GROUP BY a.id
+            ORDER BY a.date_created DESC
+        """
+        
+        if limit:
+            query += f" LIMIT {limit}"
+        
+        c.execute(query)
+        rows = c.fetchall()
+        conn.close()
+        return [dict(row) for row in rows]
+        
+    except Exception as e:
+        logger.error(f"Failed to get assessments with downloads: {str(e)}")
+        return []
+
+# ===== CONTENT EXTRACTION DATABASE FUNCTIONS =====
+
+def update_content_processing_status(db_path, document_id, status, error_message=None):
+    """Update content processing status for a document"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        if error_message:
+            cursor.execute('''
+                UPDATE content_metadata 
+                SET processing_status = ?, updated_date = CURRENT_TIMESTAMP
+                WHERE document_id = ?
+            ''', (status, document_id))
+        else:
+            cursor.execute('''
+                UPDATE content_metadata 
+                SET processing_status = ?, updated_date = CURRENT_TIMESTAMP
+                WHERE document_id = ?
+            ''', (status, document_id))
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error updating content processing status: {e}")
+        return False
+
+def record_content_extraction(db_path, content_metadata):
+    """Record content extraction results"""
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Insert into content_metadata table
+        cursor.execute('''
+            INSERT INTO content_metadata (
+                document_id, assessment_id, language, word_count, page_count,
+                key_topics, named_entities, admin_districts, sentiment_score,
+                readability_score, extraction_confidence, processing_status, vector_ids
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            content_metadata['document_id'],
+            content_metadata.get('assessment_id'),
+            content_metadata.get('language'),
+            content_metadata.get('word_count'),
+            content_metadata.get('page_count'),
+            content_metadata.get('key_topics'),
+            content_metadata.get('named_entities'),
+            content_metadata.get('admin_districts'),
+            content_metadata.get('sentiment_score'),
+            content_metadata.get('readability_score'),
+            content_metadata.get('extraction_confidence'),
+            content_metadata.get('processing_status', 'completed'),
+            content_metadata.get('vector_ids')
+        ))
+        
+        # Also insert into document_content for full text storage
+        cursor.execute('''
+            INSERT INTO document_content (
+                document_id, assessment_id, content_text, content_chunks,
+                content_length, word_count, page_count, extraction_method, processing_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            content_metadata['document_id'],
+            content_metadata.get('assessment_id'),
+            content_metadata.get('content_text'),
+            content_metadata.get('content_chunks'),
+            content_metadata.get('content_length'),
+            content_metadata.get('word_count'),
+            content_metadata.get('page_count'),
+            content_metadata.get('extraction_method'),
+            content_metadata.get('processing_status', 'completed')
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Content extraction recorded for document {content_metadata['document_id']}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error recording content extraction: {e}")
+        return False
+
+def get_content_metadata(db_path, document_id=None, limit=None):
+    """Get content metadata with optional filtering"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        query = '''
+            SELECT cm.*, dd.filename, dd.assessment_id, ha.title, ha.country
+            FROM content_metadata cm
+            LEFT JOIN document_downloads dd ON cm.document_id = dd.id
+            LEFT JOIN humanitarian_assessments ha ON cm.assessment_id = ha.id
+        '''
+        params = []
+        
+        if document_id:
+            query += ' WHERE cm.document_id = ?'
+            params.append(document_id)
+        
+        query += ' ORDER BY cm.created_date DESC'
+        
+        if limit:
+            query += ' LIMIT ?'
+            params.append(limit)
+        
+        cursor.execute(query, params)
+        results = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error getting content metadata: {e}")
+        return []
+
+def get_document_embeddings(db_path: str, content_id: int) -> List[Dict[str, Any]]:
+    """Get document embeddings for vector search"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        c.execute("""
+        SELECT de.*, dc.document_id, dc.assessment_id
+        FROM document_embeddings de
+        JOIN document_content dc ON de.content_id = dc.id
+        WHERE de.content_id = ?
+        ORDER BY de.chunk_id
+        """, (content_id,))
+        
+        rows = c.fetchall()
+        conn.close()
+        
+        result = []
+        for row in rows:
+            row_dict = dict(row)
+            # Parse embedding vector from JSON
+            if row_dict.get('embedding_vector'):
+                try:
+                    row_dict['embedding_vector'] = json.loads(row_dict['embedding_vector'])
+                except json.JSONDecodeError:
+                    row_dict['embedding_vector'] = []
+            result.append(row_dict)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to get document embeddings: {str(e)}")
+        return []
+
+def search_similar_content(db_path: str, query_embedding: List[float], limit: int = 10) -> List[Dict[str, Any]]:
+    """Search for similar content using embeddings (simplified version)"""
+    try:
+        # This is a simplified version - in production, you'd use FAISS or similar
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        c.execute("""
+        SELECT de.*, dc.document_id, dc.assessment_id, dc.cleaned_text
+        FROM document_embeddings de
+        JOIN document_content dc ON de.content_id = dc.id
+        WHERE de.embedding_vector IS NOT NULL
+        ORDER BY de.created_at DESC
+        LIMIT ?
+        """, (limit * 2,))  # Get more results for filtering
+        
+        rows = c.fetchall()
+        conn.close()
+        
+        # Calculate similarity (cosine similarity)
+        results = []
+        query_embedding = np.array(query_embedding)
+        
+        for row in rows:
+            row_dict = dict(row)
+            try:
+                embedding = json.loads(row_dict['embedding_vector'])
+                embedding = np.array(embedding)
+                
+                # Calculate cosine similarity
+                similarity = np.dot(query_embedding, embedding) / (
+                    np.linalg.norm(query_embedding) * np.linalg.norm(embedding)
+                )
+                
+                row_dict['similarity_score'] = float(similarity)
+                results.append(row_dict)
+                
+            except (json.JSONDecodeError, ValueError):
+                continue
+        
+        # Sort by similarity and return top results
+        results.sort(key=lambda x: x['similarity_score'], reverse=True)
+        return results[:limit]
+        
+    except Exception as e:
+        logger.error(f"Failed to search similar content: {str(e)}")
+        return []
+
+def create_processing_job(db_path: str, document_id: int, job_type: str, processing_options: Dict[str, Any]) -> Optional[int]:
+    """Create a content processing job record"""
+    try:
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        c.execute("""
+        INSERT INTO content_processing_jobs (
+            document_id, job_type, processing_options, start_time
+        ) VALUES (?, ?, ?, ?)
+        """, (
+            document_id,
+            job_type,
+            json.dumps(processing_options),
+            datetime.now().isoformat()
+        ))
+        
+        job_id = c.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return job_id
+        
+    except Exception as e:
+        logger.error(f"Failed to create processing job: {str(e)}")
+        return None
+
+def update_processing_job(db_path: str, job_id: int, status: str, results_summary: Optional[Dict[str, Any]] = None, error_message: Optional[str] = None):
+    """Update processing job status and results"""
+    try:
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        
+        end_time = datetime.now().isoformat()
+        
+        # Calculate processing time if job exists
+        c.execute("SELECT start_time FROM content_processing_jobs WHERE id = ?", (job_id,))
+        row = c.fetchone()
+        processing_time = 0.0
+        
+        if row and row[0]:
+            try:
+                start_time = datetime.fromisoformat(row[0])
+                processing_time = (datetime.now() - start_time).total_seconds()
+            except ValueError:
+                pass
+        
+        c.execute("""
+        UPDATE content_processing_jobs 
+        SET status = ?, end_time = ?, processing_time = ?, 
+            results_summary = ?, error_message = ?
+        WHERE id = ?
+        """, (
+            status,
+            end_time,
+            processing_time,
+            json.dumps(results_summary) if results_summary else None,
+            error_message,
+            job_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Failed to update processing job: {str(e)}")
+
+def get_processing_jobs(db_path: str, document_id: Optional[int] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Get processing job records"""
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        
+        query = "SELECT * FROM content_processing_jobs WHERE 1=1"
+        params = []
+        
+        if document_id:
+            query += " AND document_id = ?"
+            params.append(document_id)
+        
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        
+        query += " ORDER BY created_at DESC"
+        
+        c.execute(query, params)
+        rows = c.fetchall()
+        conn.close()
+        
+        result = []
+        for row in rows:
+            row_dict = dict(row)
+            # Parse JSON fields
+            if row_dict.get('processing_options'):
+                try:
+                    row_dict['processing_options'] = json.loads(row_dict['processing_options'])
+                except json.JSONDecodeError:
+                    row_dict['processing_options'] = {}
+            
+            if row_dict.get('results_summary'):
+                try:
+                    row_dict['results_summary'] = json.loads(row_dict['results_summary'])
+                except json.JSONDecodeError:
+                    row_dict['results_summary'] = {}
+            
+            result.append(row_dict)
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to get processing jobs: {str(e)}")
         return []

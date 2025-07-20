@@ -4,12 +4,12 @@ Document Registry Blueprint: Manage and track downloaded documents with metadata
 import os
 import sys
 import logging
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, render_template, flash, redirect, url_for
 import threading
 import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from utils.db_utils import get_all_metadata
+from utils.db_utils import get_all_metadata, get_document_downloads, get_document_registry_status
 
 
 document_registry_bp = Blueprint('document_registry', __name__)
@@ -73,16 +73,49 @@ def get_document_registry():
     return registry
 
 @document_registry_bp.route('/document_registry/registry', methods=['GET'])
-def get_registry():
+def registry():
     """
     GET /document_registry/registry
-    Returns a list of all records with their downloaded files and metadata.
+    Show the document registry page with all downloaded documents and their status.
     """
     try:
-        registry = get_document_registry()
-        return jsonify({'registry': registry})
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'database', 'humanitarian_assessments.db'))
+        registry_data = get_document_registry_status(db_path)
+        downloads_data = get_document_downloads(db_path)
+        
+        # Get summary statistics
+        total_downloads = len(downloads_data)
+        total_registry_entries = len(registry_data)
+        pending_processing = len([r for r in registry_data if r.get('processing_status') == 'pending'])
+        
+        stats = {
+            'total_downloads': total_downloads,
+            'total_registry_entries': total_registry_entries,
+            'pending_processing': pending_processing,
+            'processed': total_registry_entries - pending_processing
+        }
+        
+        return render_template('document_registry.html', 
+                             registry=registry_data, 
+                             downloads=downloads_data,
+                             stats=stats)
     except Exception as e:
-        logger.error(f"Error in get_registry: {e}", exc_info=True)
+        logger.error(f"Error in registry GET: {e}", exc_info=True)
+        flash(f'Error loading document registry: {str(e)}', 'error')
+        return redirect(url_for('main.index'))
+
+@document_registry_bp.route('/document_registry/api/registry', methods=['GET'])
+def get_registry_api():
+    """
+    GET /document_registry/api/registry
+    API endpoint - Returns a list of all records with their downloaded files and metadata.
+    """
+    try:
+        db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'database', 'humanitarian_assessments.db'))
+        registry_data = get_document_registry_status(db_path)
+        return jsonify({'registry': registry_data})
+    except Exception as e:
+        logger.error(f"Error in get_registry_api: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @document_registry_bp.route('/document_registry/record/<int:record_id>', methods=['GET'])

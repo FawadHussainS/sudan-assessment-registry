@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Download Documents - AI Needs Analysis{% endblock %}
+
+{% block page_title %}Download Documents{% endblock %}
+{% block page_subtitle %}Download ReliefWeb documents for selected assessments{% endblock %}
+
+{% block content %}
+<div class="dashboard-card">
+    <h3>📥 Bulk Document Download</h3>
+    <p>Select assessments below to download their associated ReliefWeb documents. Documents will be saved to the <strong>documents</strong> folder and tracked in the registry.</p>
+    
+    <form method="POST" action="{{ url_for('download_rw.bulk_download') }}" id="bulkDownloadForm">
+        <div class="form-actions" style="margin-bottom: 20px;">
+            <button type="submit" class="btn-primary" id="downloadBtn" disabled>
+                📥 Download Selected Documents
+            </button>
+            <button type="button" class="btn-secondary" onclick="selectAll()">
+                ☑️ Select All
+            </button>
+            <button type="button" class="btn-secondary" onclick="clearSelection()">
+                ☐ Clear Selection
+            </button>
+        </div>
+
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()">
+                        </th>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Country</th>
+                        <th>Source</th>
+                        <th>Format</th>
+                        <th>Available Files</th>
+                        <th>Downloaded Files</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assessment in assessments %}
+                    <tr class="{% if not assessment.has_downloadable_files %}no-files{% endif %}">
+                        <td>
+                            {% if assessment.has_downloadable_files %}
+                            <input type="checkbox" 
+                                   name="selected_assessments" 
+                                   value="{{ assessment.id }}" 
+                                   class="assessment-checkbox"
+                                   onchange="updateDownloadButton()">
+                            {% endif %}
+                        </td>
+                        <td>{{ assessment.id }}</td>
+                        <td>
+                            <div class="title-cell">
+                                {{ assessment.title[:80] }}{% if assessment.title|length > 80 %}...{% endif %}
+                            </div>
+                        </td>
+                        <td>{{ assessment.primary_country or assessment.country or 'N/A' }}</td>
+                        <td>{{ assessment.source or 'N/A' }}</td>
+                        <td>{{ assessment.format or 'N/A' }}</td>
+                        <td>
+                            {% if assessment.available_files > 0 %}
+                                <span class="badge badge-info">{{ assessment.available_files }}</span>
+                            {% else %}
+                                <span class="badge badge-gray">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if assessment.download_count > 0 %}
+                                <span class="badge badge-success">{{ assessment.download_count }}</span>
+                            {% else %}
+                                <span class="badge badge-gray">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if not assessment.has_downloadable_files %}
+                                <span class="status-badge status-unavailable">No Files</span>
+                            {% elif assessment.download_count > 0 %}
+                                <span class="status-badge status-downloaded">Downloaded</span>
+                            {% else %}
+                                <span class="status-badge status-pending">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+<style>
+.table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.data-table th, .data-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table th {
+    background: var(--ocha-blue);
+    color: white;
+    font-weight: 600;
+}
+
+.data-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.data-table tr.no-files {
+    opacity: 0.6;
+    background-color: #f5f5f5;
+}
+
+.title-cell {
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-align: center;
+    min-width: 20px;
+}
+
+.badge-info {
+    background: var(--ocha-blue);
+    color: white;
+}
+
+.badge-success {
+    background: var(--ocha-green);
+    color: white;
+}
+
+.badge-gray {
+    background: #6c757d;
+    color: white;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-downloaded {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.status-unavailable {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-primary, .btn-secondary {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: var(--ocha-blue);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--ocha-dark-blue);
+}
+
+.btn-primary:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+</style>
+
+<script>
+function updateDownloadButton() {
+    const checkboxes = document.querySelectorAll('.assessment-checkbox:checked');
+    const downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.disabled = checkboxes.length === 0;
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.assessment-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    document.getElementById('selectAllCheckbox').checked = true;
+    updateDownloadButton();
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.assessment-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAllCheckbox').checked = false;
+    updateDownloadButton();
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const checkboxes = document.querySelectorAll('.assessment-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    updateDownloadButton();
+}
+
+// Form submission confirmation
+document.getElementById('bulkDownloadForm').addEventListener('submit', function(e) {
+    const checkedBoxes = document.querySelectorAll('.assessment-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one assessment to download.');
+        return;
+    }
+    
+    const confirmed = confirm(`Are you sure you want to download documents for ${checkedBoxes.length} assessments?`);
+    if (!confirmed) {
+        e.preventDefault();
+    }
+});
+
+// Initialize button state
+updateDownloadButton();
+</script>
+{% endblock %}

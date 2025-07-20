@@ -186,6 +186,37 @@
                             </li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['download_rw.download_documents', 'document_registry.registry'] %}active{% endif %}" onclick="event.preventDefault(); this.parentElement.classList.toggle('show');">
+                            <span class="nav-icon">📁</span>
+                            Documents
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{{ url_for('download_rw.download_documents') }}" class="dropdown-item {% if request.endpoint == 'download_rw.download_documents' %}active{% endif %}">
+                                    Download Documents
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('document_registry.registry') }}" class="dropdown-item {% if request.endpoint == 'document_registry.registry' %}active{% endif %}">
+                                    Document Registry
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle {% if request.endpoint in ['content_extraction.extraction'] %}active{% endif %}" onclick="event.preventDefault(); this.parentElement.classList.toggle('show');">
+                            <span class="nav-icon">🧠</span>
+                            Extraction
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="{{ url_for('content_extraction.extraction') }}" class="dropdown-item {% if request.endpoint == 'content_extraction.extraction' %}active{% endif %}">
+                                    Content Extraction
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                     <li class="nav-item">
                         <a href="{{ url_for('api.api_fields') }}" class="nav-link {% if request.endpoint == 'api.api_fields' %}active{% endif %}">
                             <span class="nav-icon">◉</span>

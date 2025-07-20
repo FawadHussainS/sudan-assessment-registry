@@ -61,8 +61,16 @@ def create_app():
     try:
         from .document_registry.document_registry_bp import document_registry_bp
         app.register_blueprint(document_registry_bp)
-        print("\u2713 Document Registry blueprint registered")
+        print("✓ Document Registry blueprint registered")
     except ImportError as e:
         print(f"Error importing Document Registry blueprint: {e}")
+    
+    # Register Content Extraction blueprint
+    try:
+        from .content_extraction.content_extraction_bp import content_extraction_bp
+        app.register_blueprint(content_extraction_bp)
+        print("✓ Content Extraction blueprint registered")
+    except ImportError as e:
+        print(f"Error importing Content Extraction blueprint: {e}")
 
     return app
