@@ -178,44 +178,41 @@ def get_database_stats(db_path):
         """, (seven_days_ago, seven_days_ago))
         stats['records_last_7_days'] = c.fetchone()['count']
         
-        # Top 10 countries by frequency - include both primary and secondary countries
-        c.execute("""
-            WITH country_list AS (
-                SELECT primary_country as country_name FROM assessments 
-                WHERE primary_country IS NOT NULL AND primary_country != ''
-                UNION ALL
-                SELECT TRIM(country_part) as country_name FROM (
-                    SELECT 
-                        CASE 
-                            WHEN INSTR(country, ';') > 0 THEN 
-                                SUBSTR(country, 1, INSTR(country, ';') - 1)
-                            WHEN INSTR(country, ',') > 0 THEN 
-                                SUBSTR(country, 1, INSTR(country, ',') - 1)
-                            ELSE country
-                        END as country_part
-                    FROM assessments WHERE country IS NOT NULL AND country != ''
-                    UNION ALL
-                    SELECT 
-                        TRIM(SUBSTR(country, INSTR(country, ';') + 1)) as country_part
-                    FROM assessments 
-                    WHERE country IS NOT NULL AND country != '' AND INSTR(country, ';') > 0
-                    UNION ALL
-                    SELECT 
-                        TRIM(SUBSTR(country, INSTR(country, ',') + 1)) as country_part
-                    FROM assessments 
-                    WHERE country IS NOT NULL AND country != '' AND INSTR(country, ',') > 0 AND INSTR(country, ';') = 0
-                )
-                WHERE country_part IS NOT NULL AND country_part != ''
-            )
-            SELECT country_name, COUNT(*) as count 
-            FROM country_list 
-            WHERE country_name IS NOT NULL AND country_name != ''
-            GROUP BY country_name 
-            ORDER BY count DESC 
-            LIMIT 10
-        """)
-        top_countries = c.fetchall()
-        stats['top_countries'] = [(row['country_name'], row['count']) for row in top_countries]
+        # Top 10 countries by frequency - Python-based approach for proper splitting
+        c.execute("SELECT primary_country, country FROM assessments")
+        all_records = c.fetchall()
+        
+        country_counts = {}
+        
+        for record in all_records:
+            # Get all countries mentioned in this record (avoid double counting)
+            countries_in_record = set()
+            
+            # Process primary country
+            primary_country = record['primary_country']
+            if primary_country and primary_country.strip():
+                country_name = primary_country.strip().title()
+                countries_in_record.add(country_name)
+            
+            # Process secondary countries (split properly on both ; and ,)
+            country_field = record['country']
+            if country_field and country_field.strip():
+                # Replace semicolons with commas and split
+                countries_str = country_field.replace(';', ',')
+                countries = [c.strip().title() for c in countries_str.split(',') if c.strip()]
+                
+                # Add all countries to the set (set will handle duplicates)
+                for country in countries:
+                    if country:
+                        countries_in_record.add(country)
+            
+            # Count each unique country once per record
+            for country in countries_in_record:
+                country_counts[country] = country_counts.get(country, 0) + 1
+        
+        # Get top 10 countries
+        sorted_countries = sorted(country_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+        stats['top_countries'] = sorted_countries
         
         # Top 10 sources by frequency
         c.execute("""
