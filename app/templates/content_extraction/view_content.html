@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}View Content - Document {{ content.document_id }}{% endblock %}
+
+{% block page_title %}Extracted Content{% endblock %}
+{% block page_subtitle %}Document {{ content.document_id }} - Content Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .content-card {
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 25px;
+        margin-bottom: 25px;
+        border-left: 4px solid #007bff;
+    }
+    
+    .metadata-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .metadata-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    
+    .metadata-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #007bff;
+        display: block;
+    }
+    
+    .metadata-label {
+        color: #6c757d;
+        font-size: 0.9em;
+        margin-top: 5px;
+    }
+    
+    .content-text {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+    }
+    
+    .chunks-container {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+    }
+    
+    .chunk-item {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        background: #fff;
+    }
+    
+    .chunk-item:last-child {
+        border-bottom: none;
+    }
+    
+    .chunk-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .chunk-id {
+        background: #007bff;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+    }
+    
+    .chunk-stats {
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+    
+    .admin-districts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .district-tag {
+        background: #28a745;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.85em;
+    }
+    
+    .back-button {
+        background: #6c757d;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        display: inline-block;
+        margin-bottom: 20px;
+    }
+    
+    .back-button:hover {
+        background: #545b62;
+        text-decoration: none;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('content_extraction.extraction') }}" class="back-button">
+    ← Back to Content Extraction
+</a>
+
+<!-- Content Metadata -->
+<div class="metadata-grid">
+    <div class="metadata-item">
+        <span class="metadata-value">{{ content.word_count or 0 }}</span>
+        <div class="metadata-label">Words</div>
+    </div>
+    <div class="metadata-item">
+        <span class="metadata-value">{{ content.chunk_count or 0 }}</span>
+        <div class="metadata-label">Chunks</div>
+    </div>
+    <div class="metadata-item">
+        <span class="metadata-value">{{ content.admin_district_count or 0 }}</span>
+        <div class="metadata-label">Admin Districts</div>
+    </div>
+    <div class="metadata-item">
+        <span class="metadata-value">{{ "%.1f"|format((content.extraction_confidence or 0) * 100) }}%</span>
+        <div class="metadata-label">Confidence</div>
+    </div>
+</div>
+
+<!-- Extracted Text -->
+<div class="content-card">
+    <h3>📄 Extracted Text</h3>
+    <div class="content-text">{{ content.cleaned_text or content.original_text or "No text content available" }}</div>
+</div>
+
+<!-- Administrative Districts -->
+{% if content.admin_districts %}
+<div class="content-card">
+    <h3>🗺️ Administrative Districts</h3>
+    <div class="admin-districts">
+        {% for district in content.admin_districts %}
+        <span class="district-tag">{{ district.name }} (Level {{ district.level }})</span>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Content Chunks -->
+{% if content.chunks %}
+<div class="content-card">
+    <h3>📚 Content Chunks</h3>
+    <div class="chunks-container">
+        {% for chunk in content.chunks %}
+        <div class="chunk-item">
+            <div class="chunk-header">
+                <span class="chunk-id">Chunk {{ chunk.chunk_id }}</span>
+                <div class="chunk-stats">{{ chunk.word_count }} words</div>
+            </div>
+            <div class="chunk-text">{{ chunk.text }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Processing Details -->
+<div class="content-card">
+    <h3>⚙️ Processing Details</h3>
+    <div class="table-responsive">
+        <table class="table table-borderless">
+            <tr>
+                <td><strong>Document ID:</strong></td>
+                <td>{{ content.document_id }}</td>
+            </tr>
+            <tr>
+                <td><strong>Assessment ID:</strong></td>
+                <td>{{ content.assessment_id or 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Extraction Method:</strong></td>
+                <td>{{ content.extraction_method or 'Unknown' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Page Count:</strong></td>
+                <td>{{ content.page_count or 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td><strong>Character Count:</strong></td>
+                <td>{{ content.char_count or 0 }}</td>
+            </tr>
+            <tr>
+                <td><strong>Created:</strong></td>
+                <td>{{ content.created_at[:19] if content.created_at else 'N/A' }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -5,13 +5,27 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = "humanitarian-assessment-registry-2025"
     
+    # Initialize database schema at startup
+    try:
+        from utils.db_schema_update import init_db, verify_schema
+        db_initialized = init_db()
+        schema_valid = verify_schema()
+        
+        if db_initialized and schema_valid:
+            print("✓ Database schema initialized and verified")
+        else:
+            print("⚠ Database schema issues detected")
+            
+    except Exception as e:
+        print(f"⚠ Database initialization warning: {e}")
+    
     # Optional CORS - only import if available
     try:
         from flask_cors import CORS
         CORS(app)
+        print("✓ CORS enabled")
     except ImportError:
-        print("Warning: flask-cors not installed. CORS not enabled.")
-        pass
+        print("⚠ CORS not available")
 
     # Register blueprints with error handling
     try:

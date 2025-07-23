@@ -511,7 +511,7 @@ def get_assessment_by_id(db_path, assessment_id):
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT * FROM humanitarian_assessments 
+            SELECT * FROM assessments 
             WHERE id = ?
         ''', (assessment_id,))
         
@@ -740,52 +740,56 @@ def record_content_extraction(db_path, content_metadata):
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
-        # Insert into content_metadata table
-        cursor.execute('''
-            INSERT INTO content_metadata (
-                document_id, assessment_id, language, word_count, page_count,
-                key_topics, named_entities, admin_districts, sentiment_score,
-                readability_score, extraction_confidence, processing_status, vector_ids
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            content_metadata['document_id'],
-            content_metadata.get('assessment_id'),
-            content_metadata.get('language'),
-            content_metadata.get('word_count'),
-            content_metadata.get('page_count'),
-            content_metadata.get('key_topics'),
-            content_metadata.get('named_entities'),
-            content_metadata.get('admin_districts'),
-            content_metadata.get('sentiment_score'),
-            content_metadata.get('readability_score'),
-            content_metadata.get('extraction_confidence'),
-            content_metadata.get('processing_status', 'completed'),
-            content_metadata.get('vector_ids')
-        ))
-        
-        # Also insert into document_content for full text storage
+        # First, insert into document_content table (actual schema columns)
         cursor.execute('''
             INSERT INTO document_content (
-                document_id, assessment_id, content_text, content_chunks,
-                content_length, word_count, page_count, extraction_method, processing_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                document_id, assessment_id, original_text, cleaned_text,
+                extraction_method, extraction_confidence, page_count, word_count,
+                char_count, processing_time
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
             content_metadata['document_id'],
             content_metadata.get('assessment_id'),
-            content_metadata.get('content_text'),
-            content_metadata.get('content_chunks'),
-            content_metadata.get('content_length'),
-            content_metadata.get('word_count'),
-            content_metadata.get('page_count'),
-            content_metadata.get('extraction_method'),
-            content_metadata.get('processing_status', 'completed')
+            content_metadata.get('content_text', ''),  # Map content_text to original_text
+            content_metadata.get('content_text', ''),  # Also use as cleaned_text for now
+            content_metadata.get('extraction_method', 'automated'),
+            content_metadata.get('extraction_confidence', 0.95),
+            content_metadata.get('page_count', 1),
+            content_metadata.get('word_count', 0),
+            len(content_metadata.get('content_text', '')),  # char_count
+            content_metadata.get('processing_time', 0.0)
         ))
+        
+        # Get the content_id from the insert
+        content_id = cursor.lastrowid
+        
+        # Insert into content_metadata table (if it has the required columns)
+        try:
+            cursor.execute('''
+                INSERT INTO content_metadata (
+                    content_id, key_terms, named_entities, readability_scores,
+                    language_features, content_statistics, chunk_statistics,
+                    confidence_score
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                content_id,
+                content_metadata.get('key_topics', ''),
+                content_metadata.get('named_entities', ''),
+                content_metadata.get('readability_score', ''),
+                content_metadata.get('language', ''),
+                json.dumps({'word_count': content_metadata.get('word_count', 0)}),
+                '{}',  # Empty chunk statistics for now
+                content_metadata.get('extraction_confidence', 0.95)
+            ))
+        except sqlite3.OperationalError as e:
+            # If content_metadata table structure is different, skip this insert
+            logger.warning(f"Could not insert into content_metadata: {e}")
         
         conn.commit()
         conn.close()
         
         logger.info(f"Content extraction recorded for document {content_metadata['document_id']}")
-        return True
+        return content_id
         
     except Exception as e:
         logger.error(f"Error recording content extraction: {e}")
@@ -799,18 +803,22 @@ def get_content_metadata(db_path, document_id=None, limit=None):
         cursor = conn.cursor()
         
         query = '''
-            SELECT cm.*, dd.filename, dd.assessment_id, ha.title, ha.country
-            FROM content_metadata cm
-            LEFT JOIN document_downloads dd ON cm.document_id = dd.id
-            LEFT JOIN humanitarian_assessments ha ON cm.assessment_id = ha.id
+            SELECT dc.*, dd.filename, dd.assessment_id, a.title, a.country,
+                   COUNT(de.id) as chunk_count,
+                   COUNT(ad.id) as admin_district_count
+            FROM document_content dc
+            LEFT JOIN document_downloads dd ON dc.document_id = dd.id
+            LEFT JOIN assessments a ON dc.assessment_id = a.id
+            LEFT JOIN document_embeddings de ON de.content_id = dc.id
+            LEFT JOIN admin_districts ad ON ad.content_id = dc.id
         '''
         params = []
         
         if document_id:
-            query += ' WHERE cm.document_id = ?'
+            query += ' WHERE dc.document_id = ?'
             params.append(document_id)
         
-        query += ' ORDER BY cm.created_date DESC'
+        query += ' GROUP BY dc.id ORDER BY dc.created_at DESC'
         
         if limit:
             query += ' LIMIT ?'
@@ -826,201 +834,35 @@ def get_content_metadata(db_path, document_id=None, limit=None):
         logger.error(f"Error getting content metadata: {e}")
         return []
 
-def get_document_embeddings(db_path: str, content_id: int) -> List[Dict[str, Any]]:
-    """Get document embeddings for vector search"""
+def get_extracted_content_simple(db_path, limit=None):
+    """Get simple extracted content list for dashboard (fallback method)"""
     try:
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
-        c = conn.cursor()
+        cursor = conn.cursor()
         
-        c.execute("""
-        SELECT de.*, dc.document_id, dc.assessment_id
-        FROM document_embeddings de
-        JOIN document_content dc ON de.content_id = dc.id
-        WHERE de.content_id = ?
-        ORDER BY de.chunk_id
-        """, (content_id,))
-        
-        rows = c.fetchall()
-        conn.close()
-        
-        result = []
-        for row in rows:
-            row_dict = dict(row)
-            # Parse embedding vector from JSON
-            if row_dict.get('embedding_vector'):
-                try:
-                    row_dict['embedding_vector'] = json.loads(row_dict['embedding_vector'])
-                except json.JSONDecodeError:
-                    row_dict['embedding_vector'] = []
-            result.append(row_dict)
-        
-        return result
-        
-    except Exception as e:
-        logger.error(f"Failed to get document embeddings: {str(e)}")
-        return []
-
-def search_similar_content(db_path: str, query_embedding: List[float], limit: int = 10) -> List[Dict[str, Any]]:
-    """Search for similar content using embeddings (simplified version)"""
-    try:
-        # This is a simplified version - in production, you'd use FAISS or similar
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        
-        c.execute("""
-        SELECT de.*, dc.document_id, dc.assessment_id, dc.cleaned_text
-        FROM document_embeddings de
-        JOIN document_content dc ON de.content_id = dc.id
-        WHERE de.embedding_vector IS NOT NULL
-        ORDER BY de.created_at DESC
-        LIMIT ?
-        """, (limit * 2,))  # Get more results for filtering
-        
-        rows = c.fetchall()
-        conn.close()
-        
-        # Calculate similarity (cosine similarity)
-        results = []
-        query_embedding = np.array(query_embedding)
-        
-        for row in rows:
-            row_dict = dict(row)
-            try:
-                embedding = json.loads(row_dict['embedding_vector'])
-                embedding = np.array(embedding)
-                
-                # Calculate cosine similarity
-                similarity = np.dot(query_embedding, embedding) / (
-                    np.linalg.norm(query_embedding) * np.linalg.norm(embedding)
-                )
-                
-                row_dict['similarity_score'] = float(similarity)
-                results.append(row_dict)
-                
-            except (json.JSONDecodeError, ValueError):
-                continue
-        
-        # Sort by similarity and return top results
-        results.sort(key=lambda x: x['similarity_score'], reverse=True)
-        return results[:limit]
-        
-    except Exception as e:
-        logger.error(f"Failed to search similar content: {str(e)}")
-        return []
-
-def create_processing_job(db_path: str, document_id: int, job_type: str, processing_options: Dict[str, Any]) -> Optional[int]:
-    """Create a content processing job record"""
-    try:
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        
-        c.execute("""
-        INSERT INTO content_processing_jobs (
-            document_id, job_type, processing_options, start_time
-        ) VALUES (?, ?, ?, ?)
-        """, (
-            document_id,
-            job_type,
-            json.dumps(processing_options),
-            datetime.now().isoformat()
-        ))
-        
-        job_id = c.lastrowid
-        conn.commit()
-        conn.close()
-        
-        return job_id
-        
-    except Exception as e:
-        logger.error(f"Failed to create processing job: {str(e)}")
-        return None
-
-def update_processing_job(db_path: str, job_id: int, status: str, results_summary: Optional[Dict[str, Any]] = None, error_message: Optional[str] = None):
-    """Update processing job status and results"""
-    try:
-        conn = sqlite3.connect(db_path)
-        c = conn.cursor()
-        
-        end_time = datetime.now().isoformat()
-        
-        # Calculate processing time if job exists
-        c.execute("SELECT start_time FROM content_processing_jobs WHERE id = ?", (job_id,))
-        row = c.fetchone()
-        processing_time = 0.0
-        
-        if row and row[0]:
-            try:
-                start_time = datetime.fromisoformat(row[0])
-                processing_time = (datetime.now() - start_time).total_seconds()
-            except ValueError:
-                pass
-        
-        c.execute("""
-        UPDATE content_processing_jobs 
-        SET status = ?, end_time = ?, processing_time = ?, 
-            results_summary = ?, error_message = ?
-        WHERE id = ?
-        """, (
-            status,
-            end_time,
-            processing_time,
-            json.dumps(results_summary) if results_summary else None,
-            error_message,
-            job_id
-        ))
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        logger.error(f"Failed to update processing job: {str(e)}")
-
-def get_processing_jobs(db_path: str, document_id: Optional[int] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Get processing job records"""
-    try:
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        
-        query = "SELECT * FROM content_processing_jobs WHERE 1=1"
-        params = []
-        
-        if document_id:
-            query += " AND document_id = ?"
-            params.append(document_id)
-        
-        if status:
-            query += " AND status = ?"
-            params.append(status)
-        
-        query += " ORDER BY created_at DESC"
-        
-        c.execute(query, params)
-        rows = c.fetchall()
-        conn.close()
-        
-        result = []
-        for row in rows:
-            row_dict = dict(row)
-            # Parse JSON fields
-            if row_dict.get('processing_options'):
-                try:
-                    row_dict['processing_options'] = json.loads(row_dict['processing_options'])
-                except json.JSONDecodeError:
-                    row_dict['processing_options'] = {}
+        # Try to get from document_content table first
+        try:
+            query = '''
+                SELECT dc.document_id, dc.assessment_id, dd.filename, 
+                       dc.created_at as extracted_date, 'completed' as status
+                FROM document_content dc
+                LEFT JOIN document_downloads dd ON dc.document_id = dd.id
+                ORDER BY dc.created_at DESC
+            '''
+            if limit:
+                query += f' LIMIT {limit}'
             
-            if row_dict.get('results_summary'):
-                try:
-                    row_dict['results_summary'] = json.loads(row_dict['results_summary'])
-                except json.JSONDecodeError:
-                    row_dict['results_summary'] = {}
+            cursor.execute(query)
+            results = [dict(row) for row in cursor.fetchall()]
             
-            result.append(row_dict)
+        except Exception:
+            # Fallback: return empty list if table doesn't exist
+            results = []
         
-        return result
+        conn.close()
+        return results
         
     except Exception as e:
-        logger.error(f"Failed to get processing jobs: {str(e)}")
+        logger.error(f"Error getting extracted content: {e}")
         return []

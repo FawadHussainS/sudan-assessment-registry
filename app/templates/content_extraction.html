@@ -1,554 +1,994 @@
 {% extends "base.html" %}
 
-{% block title %}Content Extraction - AI Needs Analysis{% endblock %}
+{% block title %}Content Extraction - AI Analysis{% endblock %}
 
-{% block page_title %}Content Extraction{% endblock %}
-{% block page_subtitle %}Extract and analyze document content for AI processing{% endblock %}
-
-{% block extra_css %}
-<style>
-    .extraction-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .processing-card {
-        background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        padding: 25px;
-        margin-bottom: 25px;
-        border-left: 4px solid #007bff;
-    }
-    
-    .dashboard-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 20px;
-        margin-bottom: 20px;
-    }
-
-    .dashboard-card {
-        background: #ffffff;
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        padding: 25px;
-        margin-bottom: 25px;
-        border-left: 4px solid #007bff;
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-        margin-top: 15px;
-    }
-
-    .stat-item {
-        text-align: center;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
-    }
-
-    .stat-number {
-        font-size: 2em;
-        font-weight: bold;
-        color: #2563eb;
-    }
-
-    .stat-label {
-        font-size: 0.9em;
-        color: #6b7280;
-        margin-top: 5px;
-    }
-    
-    .processing-status {
-        display: inline-block;
-        padding: 5px 15px;
-        border-radius: 20px;
-        font-size: 0.9em;
-        font-weight: 500;
-    }
-    
-    .status-pending { background-color: #ffeaa7; color: #2d3436; }
-    .status-processing { background-color: #74b9ff; color: white; }
-    .status-completed { background-color: #00b894; color: white; }
-    .status-error { background-color: #e17055; color: white; }
-    
-    .file-selection {
-        border: 2px dashed #ddd;
-        border-radius: 10px;
-        padding: 30px;
-        text-align: center;
-        margin-bottom: 20px;
-        transition: border-color 0.3s;
-    }
-    
-    .file-selection:hover {
-        border-color: #007bff;
-    }
-    
-    .file-selection.dragover {
-        border-color: #28a745;
-        background-color: #f8fff9;
-    }
-    
-    .processing-options {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-        margin-bottom: 25px;
-    }
-    
-    .option-group {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 8px;
-    }
-    
-    .feature-list {
-        display: grid;
-        gap: 15px;
-    }
-
-    .feature-item {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        padding: 15px;
-        background: #f8f9fa;
-        border-radius: 8px;
-    }
-
-    .feature-icon {
-        font-size: 1.5em;
-        width: 40px;
-        text-align: center;
-    }
-
-    .feature-info strong {
-        display: block;
-        margin-bottom: 5px;
-        color: #1f2937;
-    }
-
-    .feature-info p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 0.9em;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: #6b7280;
-    }
-
-    .file-info strong {
-        color: #1f2937;
-    }
-    
-    .btn-group {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-    
-    .coming-soon-badge {
-        background: #ffeaa7;
-        color: #2d3436;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.8em;
-        margin-left: 10px;
-    }
-</style>
+{% block extra_head %}
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Match index.html stat-card styling */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 18px 16px;
+            border-radius: 6px;
+            border-left: 4px solid var(--ocha-blue);
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.2s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ocha-blue);
+            display: block;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+        }
+        
+        .dashboard-card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--ocha-blue);
+        }
+        
+        .dashboard-card h3 {
+            color: var(--ocha-dark-blue);
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .table {
+            margin-bottom: 0;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead th {
+            background: var(--ocha-blue);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 12px;
+            text-align: left;
+            letter-spacing: 0.5px;
+        }
+        
+        .table tbody td {
+            vertical-align: middle;
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        .table tbody tr:hover {
+            background-color: var(--ocha-light-blue);
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #74b9ff;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #00b894;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #e17055;
+        }
+        
+        .file-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 3px;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .file-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 2px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .btn-primary {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--ocha-dark-blue);
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--ocha-blue);
+            border: 1px solid var(--ocha-blue);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--ocha-blue);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-success {
+            background: transparent;
+            color: var(--ocha-green);
+            border: 1px solid var(--ocha-green);
+        }
+        
+        .btn-outline-success:hover {
+            background: var(--ocha-green);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-info {
+            background: transparent;
+            color: #17a2b8;
+            border: 1px solid #17a2b8;
+        }
+        
+        .btn-outline-info:hover {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-secondary {
+            background: transparent;
+            color: #6c757d;
+            border: 1px solid #6c757d;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-success {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .bulk-actions {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .bulk-actions.show {
+            display: block;
+        }
+        
+        .selection-info {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-select {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .processing-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .feature-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .feature-preview h4 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            position: relative;
+        }
+        
+        .d-flex { display: flex; }
+        .justify-content-between { justify-content: space-between; }
+        .justify-content-end { justify-content: flex-end; }
+        .align-items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        .text-muted { color: #6c757d; }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        
+        .col-md-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-md-6 {
+            flex: 0 0 50%;
+            max-width: 50%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .col-md-3 { flex: 0 0 50%; max-width: 50%; }
+            .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+            .stats-card h3 { font-size: 2rem; }
+            .table-responsive { overflow-x: scroll; }
+        }
+        
+        @media (max-width: 576px) {
+            .col-md-3, .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 20px;
+        }
+        
+        .badge-info { 
+            background: var(--ocha-blue); 
+            color: white; 
+        }
+        .badge-success { 
+            background: var(--ocha-green); 
+            color: white; 
+        }
+        .badge-warning { 
+            background: #ffc107; 
+            color: #212529; 
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #b8daff;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
 {% endblock %}
 
-{% block content %}
-<div class="extraction-container">
-    <div class="dashboard-grid">
-        <!-- Statistics Overview -->
-        <div class="dashboard-card">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h3>📊 Extraction Statistics</h3>
-                <span id="overall-status" class="processing-status status-pending">Ready</span>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-number">{{ stats.total_documents }}</div>
-                    <div class="stat-label">Total Documents</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ stats.extracted }}</div>
-                    <div class="stat-label">Extracted</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ stats.pending }}</div>
-                    <div class="stat-label">Pending</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">{{ stats.failed }}</div>
-                    <div class="stat-label">Failed</div>
-                </div>
-            </div>
-        </div>
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{{ url_for('main.index') }}">Home</a> / <a href="{{ url_for('content_extraction.extraction') }}">Content Extraction</a>
+</div>
+{% endblock %}
 
-        <!-- Quick Actions -->
-        <div class="dashboard-card">
-            <h3>🚀 Quick Actions</h3>
-            <div class="feature-list">
-                <div class="feature-item">
-                    <span class="feature-icon">📄</span>
-                    <div class="feature-info">
-                        <strong>Upload Documents <span class="coming-soon-badge">Coming Soon</span></strong>
-                        <p>Upload new documents for processing</p>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">⚡</span>
-                    <div class="feature-info">
-                        <strong>Batch Processing <span class="coming-soon-badge">Coming Soon</span></strong>
-                        <p>Process multiple documents at once</p>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔍</span>
-                    <div class="feature-info">
-                        <strong>Semantic Search <span class="coming-soon-badge">Coming Soon</span></strong>
-                        <p>Search through extracted content</p>
-                    </div>
-                </div>
-            </div>
+{% block page_title %}Content Extraction{% endblock %}
+{% block page_subtitle %}Extract and analyze document content using AI{% endblock %}
+
+{% block content %}
+<!-- Create safe list for template processing -->
+{% set extracted_ids = [] %}
+{% if extracted_docs %}
+    {% for doc in extracted_docs %}
+        {% if doc.document_id %}
+            {% set _ = extracted_ids.append(doc.document_id) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+    <div>
+        <small id="lastUpdated" class="text-muted">Last updated: <span id="lastUpdatedTime">Loading...</span></small>
+    </div>
+    <button id="refreshBtn" class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+        <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+    <button id="extractAllBtn" class="btn btn-outline-success btn-sm" onclick="extractAllDocuments()" disabled>
+        <i class="fas fa-cogs"></i> Extract All (<span id="pendingCount">{{ stats.pending if stats.pending >= 0 else 0 }}</span>)
+    </button>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+</div>
+
+<!-- Statistics Overview -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.total_documents }}</span>
+        <span class="stat-label"><i class="fas fa-file-alt"></i> Total Documents</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.extracted }}</span>
+        <span class="stat-label"><i class="fas fa-check-circle"></i> Extracted</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.pending if stats.pending >= 0 else 0 }}</span>
+        <span class="stat-label"><i class="fas fa-clock"></i> Pending</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.get('total_embeddings', 0) }}</span>
+        <span class="stat-label"><i class="fas fa-brain"></i> AI Embeddings</span>
+    </div>
+</div>
+
+<!-- Bulk Actions Panel -->
+<div class="bulk-actions" id="bulkActions">
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="selection-info">
+            <i class="fas fa-check-square"></i> <span id="selectionCount">0</span> documents selected
+        </div>
+        <div class="gap-2 d-flex">
+            <button type="button" class="btn btn-success btn-sm" id="bulkExtractBtn" onclick="processBulkDocuments()" disabled>
+                <i class="fas fa-cogs"></i> Extract Selected
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                <i class="fas fa-times"></i> Clear Selection
+            </button>
         </div>
     </div>
+</div>
 
-    <!-- Processing Queue -->
-    <div class="dashboard-card">
-        <h3>🔄 Processing Queue</h3>
-        <p class="text-muted">Documents available for content extraction</p>
-        
-        {% if downloads %}
-        <div class="table-container">
-            <table class="data-table table table-striped">
-                <thead>
-                    <tr>
-                        <th>Document</th>
-                        <th>Assessment ID</th>
-                        <th>File Size</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for download in downloads %}
-                    <tr>
-                        <td>
-                            <div class="file-info">
-                                <strong>{{ download.filename or 'Unknown File' }}</strong>
-                                <br>
-                                <small class="text-muted">Downloaded: {{ download.download_date or 'N/A' }}</small>
+<!-- Progress Container -->
+<div class="progress-container" id="progressContainer">
+    <h4><i class="fas fa-spinner fa-spin"></i> Processing Documents...</h4>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="progressText">Preparing...</div>
+    <div class="processing-log" id="processingLog"></div>
+</div>
+
+<!-- Documents Available for Extraction -->
+{% if downloads %}
+<div class="dashboard-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-file-alt"></i> Documents Ready for Extraction ({{ downloads|length }})</h3>
+        <div class="gap-2 d-flex">
+            <button class="btn btn-outline-info btn-sm" onclick="selectAll()">
+                <i class="fas fa-check-square"></i> Select All
+            </button>
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th width="40">
+                        <input type="checkbox" class="checkbox-select" id="masterCheckbox" onchange="toggleMasterCheckbox()">
+                    </th>
+                    <th>Document</th>
+                    <th>Assessment ID</th>
+                    <th>File Info</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for download in downloads %}
+                <tr>
+                    <td>
+                        {% if download.id not in extracted_ids %}
+                        <input type="checkbox" class="checkbox-select document-checkbox" 
+                               value="{{ download.id }}" onchange="updateSelection()">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="fas fa-file-pdf"></i> {{ download.filename }}
                             </div>
-                        </td>
-                        <td>{{ download.assessment_id or 'N/A' }}</td>
-                        <td>
-                            {% if download.file_size %}
-                                {% if download.file_size < 1024 %}
-                                    {{ download.file_size }} B
-                                {% elif download.file_size < 1048576 %}
-                                    {{ "%.1f"|format(download.file_size / 1024) }} KB
+                            <div class="file-meta">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i> 
+                                    {% if download.download_date %}
+                                        {% if download.download_date is string %}
+                                            {{ download.download_date }}
+                                        {% else %}
+                                            {{ download.download_date.strftime('%Y-%m-%d') }}
+                                        {% endif %}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-info">{{ download.assessment_id }}</span>
+                    </td>
+                    <td>
+                        {% if download.file_size %}
+                            <small class="text-muted">
+                                <i class="fas fa-hdd"></i> {{ "%.1f"|format(download.file_size / 1024 / 1024) }} MB
+                            </small>
+                        {% else %}
+                            <small class="text-muted">Size unknown</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if download.id in extracted_ids %}
+                            <span class="status-badge status-completed">
+                                <i class="fas fa-check"></i> Extracted
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-pending">
+                                <i class="fas fa-clock"></i> Pending
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if download.id in extracted_ids %}
+                            <a href="{{ url_for('content_extraction.view_content', document_id=download.id) }}" 
+                               class="btn btn-outline-success btn-sm" target="_blank" title="View Extracted Content">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        {% else %}
+                            <button onclick="processDocument({{ download.id }})" 
+                                    class="btn btn-outline-primary btn-sm" title="Extract Content">
+                                <i class="fas fa-cogs"></i> Extract
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="dashboard-card">
+    <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <h4>No Documents Available</h4>
+        <p class="text-muted">No documents have been downloaded yet for content extraction.</p>
+        <a href="{{ url_for('download_rw.download_documents') }}" class="btn btn-primary">
+            <i class="fas fa-download"></i> Download Documents
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recently Extracted Content -->
+{% if extracted_docs %}
+<div class="dashboard-card">
+    <h3><i class="fas fa-history"></i> Recently Extracted Content</h3>
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>Assessment ID</th>
+                    <th>Extracted Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in extracted_docs %}
+                <tr>
+                    <td>
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="fas fa-file-alt"></i> {{ doc.filename or 'Document ' + doc.document_id|string }}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-info">{{ doc.assessment_id }}</span>
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> 
+                            {% if doc.extracted_date %}
+                                {% if doc.extracted_date is string %}
+                                    {{ doc.extracted_date }}
                                 {% else %}
-                                    {{ "%.1f"|format(download.file_size / 1048576) }} MB
+                                    {{ doc.extracted_date.strftime('%Y-%m-%d %H:%M') }}
                                 {% endif %}
                             {% else %}
                                 N/A
                             {% endif %}
-                        </td>
-                        <td>
-                            <span class="processing-status status-pending">
-                                Ready for Extraction
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-sm btn-primary" onclick="processDocument({{ download.id }})">
-                                🚀 Extract Content
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="empty-state">
-            <p>No documents available for extraction.</p>
-            <a href="{{ url_for('download_rw.download_documents') }}" class="btn btn-primary">
-                📥 Download Documents First
-            </a>
-        </div>
-        {% endif %}
+                        </small>
+                    </td>
+                    <td>
+                        <span class="status-badge status-completed">
+                            <i class="fas fa-check"></i> {{ doc.status or 'Completed' }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('content_extraction.view_content', document_id=doc.document_id) }}" 
+                           class="btn btn-outline-primary btn-sm" target="_blank">
+                            <i class="fas fa-eye"></i> View Content
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
+{% endif %}
 
-    <!-- Future Features Preview -->
-    <div class="dashboard-card">
-        <h3>🔮 AI-Powered Features (Coming Soon)</h3>
-        <div class="feature-list">
-            <div class="feature-item">
-                <span class="feature-icon">🔍</span>
-                <div class="feature-info">
-                    <strong>PDF Text Extraction</strong>
-                    <p>Extract text content from PDF documents using pdfplumber</p>
-                </div>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">🧠</span>
-                <div class="feature-info">
-                    <strong>Vector Embeddings</strong>
-                    <p>Generate embeddings using sentence-transformers for semantic search</p>
-                </div>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">🏷️</span>
-                <div class="feature-info">
-                    <strong>Admin Geo-tagging</strong>
-                    <p>Extract administrative districts and locations using spaCy NLP</p>
-                </div>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">📊</span>
-                <div class="feature-info">
-                    <strong>Content Analysis</strong>
-                    <p>Topic modeling, sentiment analysis, and readability scoring</p>
-                </div>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">🔗</span>
-                <div class="feature-info">
-                    <strong>FAISS Vector Database</strong>
-                    <p>High-performance similarity search and clustering</p>
-                </div>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">🌐</span>
-                <div class="feature-info">
-                    <strong>Multi-language Support</strong>
-                    <p>Process documents in multiple languages with automatic detection</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Development Status -->
-    <div class="dashboard-card">
-        <h3>🛠️ Development Status</h3>
-        <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle"></i> Current Phase: Foundation Setup</h5>
-            <p class="mb-2">The Content Extraction system is currently in development. Here's what's ready:</p>
-            <ul class="mb-2">
-                <li>✅ Database schema for content metadata</li>
-                <li>✅ Document processing pipeline structure</li>
-                <li>✅ Vector database utilities (FAISS)</li>
-                <li>✅ Admin geo-tagging utilities</li>
-                <li>⏳ PDF/DOCX content extractors</li>
-                <li>⏳ Embedding generation pipeline</li>
-                <li>⏳ Real-time processing interface</li>
+<!-- AI Features Preview -->
+<div class="feature-preview">
+    <h4><i class="fas fa-brain"></i> AI-Powered Features</h4>
+    <div class="row">
+        <div class="col-md-6">
+            <ul class="feature-list">
+                <li><i class="fas fa-language"></i> Multi-language content extraction</li>
+                <li><i class="fas fa-map-marker-alt"></i> Geographic entity recognition</li>
+                <li><i class="fas fa-tags"></i> Automated keyword extraction</li>
             </ul>
-            <div class="btn-group">
-                <button type="button" class="btn btn-outline-primary" onclick="showDevelopmentPlan()">
-                    📋 View Development Plan
-                </button>
-                <a href="{{ url_for('download_rw.download_documents') }}" class="btn btn-primary">
-                    📥 Download Sample Documents
-                </a>
-            </div>
+        </div>
+        <div class="col-md-6">
+            <ul class="feature-list">
+                <li><i class="fas fa-search"></i> Semantic search capabilities</li>
+                <li><i class="fas fa-chart-line"></i> Content sentiment analysis</li>
+                <li><i class="fas fa-robot"></i> Smart content summarization</li>
+            </ul>
         </div>
     </div>
 </div>
 
-<!-- Development Plan Modal -->
-<div class="modal fade" id="developmentPlanModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">🚀 Content Extraction Development Plan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="timeline">
-                    <div class="timeline-item completed">
-                        <h6>✅ Phase 1: Foundation (Completed)</h6>
-                        <ul>
-                            <li>Database schema design</li>
-                            <li>Blueprint structure</li>
-                            <li>Utility modules</li>
-                        </ul>
-                    </div>
-                    <div class="timeline-item current">
-                        <h6>🔄 Phase 2: Core Processing (In Progress)</h6>
-                        <ul>
-                            <li>PDF text extraction (pdfplumber)</li>
-                            <li>DOCX content extraction (python-docx)</li>
-                            <li>Text cleaning and preprocessing</li>
-                            <li>Content chunking strategies</li>
-                        </ul>
-                    </div>
-                    <div class="timeline-item">
-                        <h6>⏳ Phase 3: AI Integration (Next)</h6>
-                        <ul>
-                            <li>Sentence transformer embeddings</li>
-                            <li>FAISS vector database integration</li>
-                            <li>Named entity recognition (spaCy)</li>
-                            <li>Administrative geo-tagging</li>
-                        </ul>
-                    </div>
-                    <div class="timeline-item">
-                        <h6>🔮 Phase 4: Advanced Features (Future)</h6>
-                        <ul>
-                            <li>Real-time semantic search</li>
-                            <li>Document similarity clustering</li>
-                            <li>Topic modeling and analysis</li>
-                            <li>Multi-language support</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Alerts Container -->
+<div id="alertsContainer"></div>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+let selectedDocuments = new Set();
+let isProcessing = false;
+
 $(document).ready(function() {
     // Update stats periodically
     setInterval(updateStats, 30000); // Every 30 seconds
     
-    function updateStats() {
-        $.get('/content_extraction/api/stats')
-            .done(function(data) {
-                $('.stat-number').each(function(index) {
-                    const statNames = ['total_documents', 'extracted', 'pending', 'failed'];
-                    $(this).text(data[statNames[index]] || 0);
-                });
-            })
-            .fail(function() {
-                console.log('Failed to update stats');
-            });
-    }
+    // Initialize selection state
+    updateSelection();
     
-    function processDocument(documentId) {
-        if (confirm('Start content extraction for this document? (Feature coming soon)')) {
-            $('#overall-status').removeClass().addClass('processing-status status-processing').text('Processing');
-            
-            fetch(`/content_extraction/process_document/${documentId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    $('#overall-status').removeClass().addClass('processing-status status-completed').text('Ready');
-                    showAlert('info', data.message);
-                } else {
-                    $('#overall-status').removeClass().addClass('processing-status status-error').text('Error');
-                    showAlert('danger', 'Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                $('#overall-status').removeClass().addClass('processing-status status-error').text('Error');
-                showAlert('danger', 'Error processing document');
-            });
-        }
-    }
+    // Set last updated time
+    setLastUpdated();
     
-    function showDevelopmentPlan() {
-        $('#developmentPlanModal').modal('show');
+    // Enable extract all button if there are pending documents
+    const pendingCount = Math.max(0, parseInt('{{ stats.pending if stats.pending >= 0 else 0 }}'));
+    const extractAllBtn = document.getElementById('extractAllBtn');
+    if (extractAllBtn && pendingCount > 0) {
+        extractAllBtn.disabled = false;
     }
-    
-    function showAlert(type, message) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-        $('.extraction-container').prepend(alertHtml);
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            $('.alert').alert('close');
-        }, 5000);
-    }
-    
-    // Make functions globally available
-    window.processDocument = processDocument;
-    window.showDevelopmentPlan = showDevelopmentPlan;
 });
+
+function setLastUpdated() {
+    const now = new Date();
+    const timeStr = now.toLocaleString();
+    const lastUpdatedElement = document.getElementById('lastUpdatedTime');
+    if (lastUpdatedElement) {
+        lastUpdatedElement.textContent = timeStr;
+    }
+}
+
+function updateStats() {
+    if (isProcessing) return; // Don't update during processing
+    
+    $.get('/content_extraction/api/stats')
+        .done(function(data) {
+            // Update stats cards
+            $('.stats-card h3').eq(0).text(data.total_documents);
+            $('.stats-card h3').eq(1).text(data.extracted);
+            $('.stats-card h3').eq(2).text(data.pending);
+            $('.stats-card h3').eq(3).text(data.total_embeddings || 0);
+            
+            // Update pending count in extract all button
+            $('#pendingCount').text(Math.max(0, data.pending));
+            
+            // Enable/disable extract all button
+            const extractAllBtn = document.getElementById('extractAllBtn');
+            if (extractAllBtn) {
+                extractAllBtn.disabled = data.pending <= 0;
+            }
+            
+            setLastUpdated();
+        })
+        .fail(function() {
+            console.error('Failed to update stats');
+        });
+}
+
+function processDocument(documentId) {
+    if (!confirm('Start content extraction for this document?')) return;
+    
+    showAlert('info', 'Starting content extraction...');
+    
+    fetch(`/content_extraction/process_document/${documentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Error: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error processing document: ' + error.message);
+    });
+}
+
+function extractAllDocuments() {
+    const pendingCount = Math.max(0, parseInt('{{ stats.pending if stats.pending >= 0 else 0 }}'));
+    if (pendingCount === 0) {
+        showAlert('info', 'No pending documents to extract.');
+        return;
+    }
+    
+    if (!confirm(`Extract content from all ${pendingCount} pending documents?`)) return;
+    
+    // Get all unchecked document IDs (pending documents)
+    const documentIds = [];
+    document.querySelectorAll('.document-checkbox').forEach(checkbox => {
+        documentIds.push(parseInt(checkbox.value));
+    });
+    
+    if (documentIds.length === 0) {
+        showAlert('info', 'No documents available for extraction.');
+        return;
+    }
+    
+    // Process as bulk
+    processBulkDocumentsInternal(documentIds);
+}
+
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    selectedDocuments.clear();
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            selectedDocuments.add(parseInt(checkbox.value));
+        }
+    });
+    
+    const selectionCount = selectedDocuments.size;
+    document.getElementById('selectionCount').textContent = selectionCount;
+    document.getElementById('bulkExtractBtn').disabled = selectionCount === 0;
+    
+    const bulkActions = document.getElementById('bulkActions');
+    if (selectionCount > 0) {
+        bulkActions.classList.add('show');
+    } else {
+        bulkActions.classList.remove('show');
+    }
+    
+    // Update master checkbox
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    const totalCheckboxes = checkboxes.length;
+    const checkedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (checkedCheckboxes === 0) {
+        masterCheckbox.checked = false;
+        masterCheckbox.indeterminate = false;
+    } else if (checkedCheckboxes === totalCheckboxes) {
+        masterCheckbox.checked = true;
+        masterCheckbox.indeterminate = false;
+    } else {
+        masterCheckbox.checked = false;
+        masterCheckbox.indeterminate = true;
+    }
+}
+
+function toggleMasterCheckbox() {
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+    
+    updateSelection();
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelection();
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelection();
+}
+
+function processBulkDocuments() {
+    if (selectedDocuments.size === 0) {
+        showAlert('warning', 'Please select documents to process.');
+        return;
+    }
+    
+    const documentIds = Array.from(selectedDocuments);
+    processBulkDocumentsInternal(documentIds);
+}
+
+function processBulkDocumentsInternal(documentIds) {
+    if (!confirm(`Process ${documentIds.length} documents for content extraction?`)) {
+        return;
+    }
+    
+    isProcessing = true;
+    
+    // Show progress container
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const processingLog = document.getElementById('processingLog');
+    
+    progressContainer.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Starting bulk processing...';
+    processingLog.innerHTML = '';
+    
+    // Disable bulk actions
+    document.getElementById('bulkExtractBtn').disabled = true;
+    document.getElementById('extractAllBtn').disabled = true;
+    
+    // Process documents
+    fetch('/content_extraction/bulk_process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: documentIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            progressFill.style.width = '100%';
+            progressText.textContent = `Completed: ${data.message}`;
+            
+            // Log results
+            if (data.results) {
+                data.results.forEach(result => {
+                    const logEntry = document.createElement('div');
+                    logEntry.textContent = `Document ${result.document_id}: ${result.status} - ${result.message || result.error}`;
+                    logEntry.style.color = result.status === 'success' ? 'green' : 'red';
+                    processingLog.appendChild(logEntry);
+                });
+            }
+            
+            showAlert('success', data.message);
+            
+            // Reload page after delay
+            setTimeout(() => location.reload(), 3000);
+        } else {
+            showAlert('danger', 'Bulk processing failed: ' + (data.error || 'Unknown error'));
+            progressText.textContent = 'Processing failed';
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Error during bulk processing: ' + error.message);
+        progressText.textContent = 'Processing failed';
+    })
+    .finally(() => {
+        isProcessing = false;
+        
+        // Re-enable buttons after delay
+        setTimeout(() => {
+            document.getElementById('bulkExtractBtn').disabled = false;
+            document.getElementById('extractAllBtn').disabled = false;
+        }, 5000);
+    });
+}
+
+function viewContent(contentId) {
+    window.open(`/content_extraction/view_content/${contentId}`, '_blank');
+}
+
+function showAlert(type, message) {
+    const alertsContainer = document.getElementById('alertsContainer');
+    const alertId = 'alert_' + Date.now();
+    
+    const alertTypeClass = {
+        'success': 'alert-success',
+        'danger': 'alert-danger',
+        'warning': 'alert-warning',
+        'info': 'alert-info'
+    }[type] || 'alert-info';
+    
+    const alertHtml = `
+        <div class="alert ${alertTypeClass} alert-dismissible fade show" role="alert" id="${alertId}" style="position: fixed; top: 20px; right: 20px; z-index: 1050; min-width: 300px;">
+            ${message}
+            <button type="button" class="btn-close" onclick="document.getElementById('${alertId}').remove()" aria-label="Close" style="background: none; border: none; font-size: 1.2em; color: inherit; opacity: 0.8;">&times;</button>
+        </div>
+    `;
+    
+    alertsContainer.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.remove();
+        }
+    }, 5000);
+}
+
+// Semantic search functionality (placeholder)
+function performSemanticSearch() {
+    const query = prompt('Enter your search query:');
+    if (query) {
+        showAlert('info', 'Semantic search feature coming soon!');
+    }
+}
 </script>
-
-<style>
-.timeline {
-    position: relative;
-    padding-left: 30px;
-}
-
-.timeline::before {
-    content: '';
-    position: absolute;
-    left: 15px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: #dee2e6;
-}
-
-.timeline-item {
-    position: relative;
-    margin-bottom: 30px;
-    padding-left: 30px;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: -22px;
-    top: 5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #dee2e6;
-    border: 2px solid #fff;
-}
-
-.timeline-item.completed::before {
-    background: #28a745;
-}
-
-.timeline-item.current::before {
-    background: #007bff;
-}
-
-.timeline-item h6 {
-    margin-bottom: 10px;
-    color: #495057;
-}
-
-.timeline-item ul {
-    margin-bottom: 0;
-    padding-left: 20px;
-}
-
-.timeline-item li {
-    margin-bottom: 5px;
-    color: #6c757d;
-}
-</style>
 {% endblock %}

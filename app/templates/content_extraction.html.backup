@@ -1,0 +1,1068 @@
+{% extends "base.html" %}
+
+{% block title %}Content Extraction - AI Analysis{% endblock %}
+
+{% block extra_head %}
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stats-card h3 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        
+        .stats-card p {
+            margin: 5px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .dashboard-card {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .dashboard-card h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .table {
+            margin-bottom: 0;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead th {
+            background: var(--ocha-blue);
+            color: white;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .table tbody td {
+            vertical-align: middle;
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #e3f2fd;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #74b9ff;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #00b894;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #e17055;
+        }
+        
+        .file-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 3px;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .file-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 2px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .btn-primary {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--ocha-dark-blue);
+            transform: translateY(-1px);
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--ocha-blue);
+            border: 1px solid var(--ocha-blue);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .btn-outline-success {
+            background: transparent;
+            color: var(--ocha-green);
+            border: 1px solid var(--ocha-green);
+        }
+        
+        .btn-outline-success:hover {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .btn-outline-info {
+            background: transparent;
+            color: #17a2b8;
+            border: 1px solid #17a2b8;
+        }
+        
+        .btn-outline-info:hover {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .bulk-actions {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .bulk-actions.show {
+            display: block;
+        }
+        
+        .selection-info {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-select {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .progress-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .processing-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .feature-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+        
+        .feature-preview h4 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+        }
+        
+        .feature-list li:before {
+            content: "🤖";
+            position: absolute;
+            left: 0;
+        }
+        
+        .d-flex {
+            display: flex;
+        }
+        
+        .justify-content-between {
+            justify-content: space-between;
+        }
+        
+        .justify-content-end {
+            justify-content: flex-end;
+        }
+        
+        .align-items-center {
+            align-items: center;
+        }
+        
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        
+        .col-md-3 {
+            flex: 0 0 25%;
+            max-width: 25%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .col-md-3 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+            
+            .stats-card h3 {
+                font-size: 2rem;
+            }
+            
+            .table-responsive {
+                overflow-x: scroll;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .col-md-3 {
+                flex: 0 0 100%;
+                max-width: 100%;
+            }
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 20px;
+        }
+        
+        .badge-info {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .badge-success {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .badge-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            border: 1px solid #b8daff;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{{ url_for('main.index') }}">Home</a> / <a href="{{ url_for('content_extraction.extraction') }}">Content Extraction</a>
+</div>
+{% endblock %}
+
+{% block page_title %}Content Extraction{% endblock %}
+{% block page_subtitle %}Extract and analyze document content using AI{% endblock %}
+
+{% block content %}
+        color: #004085;
+        border: 1px solid #74b9ff;
+    }
+    
+    .status-completed {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #00b894;
+    }
+    
+    .status-failed {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #e17055;
+    }
+    
+    .file-info {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .file-name {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 3px;
+    }
+    
+    .file-meta {
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    
+    .btn-action {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9em;
+        margin: 2px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-extract {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+    }
+    
+    .btn-extract:hover {
+        background: linear-gradient(135deg, #0056b3, #004494);
+        transform: translateY(-1px);
+    }
+    
+    .btn-bulk {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+        color: white;
+        margin-bottom: 20px;
+    }
+    
+    .btn-bulk:hover {
+        background: linear-gradient(135deg, #1e7e34, #155724);
+    }
+    
+    .btn-bulk:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    .bulk-actions {
+        background: #e9ecef;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+    }
+    
+    .bulk-actions.show {
+        display: block;
+    }
+    
+    .selection-info {
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 10px;
+    }
+    
+    .checkbox-select {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .progress-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+        display: none;
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 10px 0;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #007bff, #28a745);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+    
+    .processing-log {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 0.9em;
+        margin-top: 10px;
+    }
+    
+    .alert-info {
+        background-color: #d1ecf1;
+        border: 1px solid #b8daff;
+        color: #0c5460;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4em;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .feature-preview {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin: 20px 0;
+    }
+    
+    .feature-preview h4 {
+        color: white;
+        margin-bottom: 15px;
+    }
+    
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .feature-list li {
+        padding: 5px 0;
+        position: relative;
+        padding-left: 25px;
+    }
+    
+    .feature-list li:before {
+        content: "✨";
+        position: absolute;
+        left: 0;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .table-container {
+            font-size: 0.9em;
+        }
+        
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Create safe list for template processing -->
+{% set extracted_ids = [] %}
+{% if extracted_docs %}
+    {% for doc in extracted_docs %}
+        {% if doc.document_id %}
+            {% set _ = extracted_ids.append(doc.document_id) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+<!-- Statistics Overview -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.total_documents }}</span>
+        <div class="stat-label">Total Documents</div>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.extracted }}</span>
+        <div class="stat-label">Extracted</div>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.pending }}</span>
+        <div class="stat-label">Pending</div>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.total_embeddings }}</span>
+        <div class="stat-label">Vector Embeddings</div>
+    </div>
+</div>
+
+<!-- Bulk Actions -->
+<div class="bulk-actions" id="bulkActions">
+    <div class="selection-info">
+        <span id="selectionCount">0</span> documents selected
+    </div>
+    <button type="button" class="btn-action btn-bulk" id="bulkExtractBtn" onclick="processBulkDocuments()" disabled>
+        🚀 Extract Selected Documents
+    </button>
+    <button type="button" class="btn-action" onclick="clearSelection()" style="background: #6c757d; color: white;">
+        Clear Selection
+    </button>
+</div>
+
+<!-- Progress Container -->
+<div class="progress-container" id="progressContainer">
+    <h4>Processing Documents...</h4>
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div id="progressText">Preparing...</div>
+    <div class="processing-log" id="processingLog"></div>
+</div>
+
+<!-- Documents Available for Extraction -->
+{% if downloads %}
+<div class="dashboard-card">
+    <div class="d-flex justify-content-between align-items-center">
+        <h3>� Documents Ready for Extraction</h3>
+        <button class="btn-action" onclick="selectAll()" id="selectAllBtn" style="background: #17a2b8; color: white;">
+            Select All
+        </button>
+    </div>
+    
+    <div class="table-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th width="40">
+                        <input type="checkbox" class="checkbox-select" id="masterCheckbox" onchange="toggleMasterCheckbox()">
+                    </th>
+                    <th>Document</th>
+                    <th>Assessment ID</th>
+                    <th>File Size</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for download in downloads %}
+                <tr>
+                    <td>
+                        <input type="checkbox" class="checkbox-select document-checkbox" 
+                               data-document-id="{{ download.id }}" 
+                               onchange="updateSelection()">
+                    </td>
+                    <td>
+                        <div class="file-info">
+                            <div class="file-name">{{ download.filename or 'Unknown File' }}</div>
+                            <div class="file-meta">
+                                Downloaded: {{ download.download_date or 'N/A' }}
+                                {% if download.file_path %}| File exists{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge badge-secondary">{{ download.assessment_id or 'N/A' }}</span>
+                    </td>
+                    <td>
+                        {% if download.file_size %}
+                            {% if download.file_size < 1024 %}
+                                {{ download.file_size }} B
+                            {% elif download.file_size < 1048576 %}
+                                {{ "%.1f"|format(download.file_size / 1024) }} KB
+                            {% else %}
+                                {{ "%.1f"|format(download.file_size / 1048576) }} MB
+                            {% endif %}
+                        {% else %}
+                            Unknown
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if download.id in extracted_ids %}
+                            <span class="status-badge status-completed">Extracted</span>
+                        {% else %}
+                            <span class="status-badge status-pending">Ready</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if download.job_id %}
+                            <a href="{{ url_for('content_extraction.job_status', job_id=download.job_id) }}" class="btn-action btn-extract" title="View Job Status">🔎 Job Status</a>
+                        {% endif %}
+                        {% if download.id not in extracted_ids %}
+                            <button class="btn-action btn-extract" onclick="processDocument({{ download.id }})">
+                                🚀 Extract
+                            </button>
+                        {% elif download.content_id %}
+                            <a href="{{ url_for('content_extraction.view_content', content_id=download.content_id) }}" class="btn-action btn-success" title="View Extracted Content" style="background: #28a745; color: white;">
+                                👁️ View Content
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="dashboard-card">
+    <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <h4>No Documents Available</h4>
+        <p>Download documents first to start content extraction.</p>
+        <a href="{{ url_for('download_rw.download_documents') }}" class="btn-action btn-extract">
+            📥 Download Documents
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recently Extracted Content -->
+{% if extracted_docs %}
+<div class="dashboard-card">
+    <h3>Recently Extracted Content</h3>
+    <ul>
+    {% for doc in extracted_docs %}
+      {% if doc.status == 'completed' %}
+        <li>
+          {{ doc.filename }} (ID: {{ doc.document_id }}) - Extracted on {{ doc.extracted_date }}
+        </li>
+      {% endif %}
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- AI Features Preview -->
+<div class="feature-preview">
+    <h4>🤖 AI-Powered Features</h4>
+    <ul class="feature-list">
+        <li>Automatic text extraction from PDFs, Word docs, and Excel files</li>
+        <li>Semantic content chunking for better AI processing</li>
+        <li>Administrative geo-tagging (Sudan, South Sudan, Chad, etc.)</li>
+        <li>Vector embeddings for similarity search (coming soon)</li>
+        <li>Named entity recognition and key term extraction</li>
+        <li>Readability analysis and content statistics</li>
+    </ul>
+</div>
+
+<!-- Alerts Container -->
+<div id="alertsContainer"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+let selectedDocuments = new Set();
+let isProcessing = false;
+
+$(document).ready(function() {
+    // Update stats periodically
+    setInterval(updateStats, 30000); // Every 30 seconds
+    
+    // Initialize selection state
+    updateSelection();
+});
+
+function updateStats() {
+    if (isProcessing) return; // Don't update during processing
+    
+    $.get('/content_extraction/api/stats')
+        .done(function(data) {
+            $('.stat-number').each(function(index) {
+                const statNames = ['total_documents', 'extracted', 'pending', 'total_embeddings'];
+                $(this).text(data[statNames[index]] || 0);
+            });
+        })
+        .fail(function() {
+            console.log('Failed to update stats');
+        });
+}
+
+function processDocument(documentId) {
+    if (!confirm('Start content extraction for this document?')) return;
+    showAlert('info', 'Starting content extraction...');
+    // Show progress bar if present
+    const progress = document.getElementById(`progress-${documentId}`);
+    if (progress) progress.style.display = 'block';
+    const fill = document.getElementById(`progress-fill-${documentId}`);
+    if (fill) fill.style.width = '10%';
+    const status = document.getElementById(`progress-status-${documentId}`);
+    if (status) status.textContent = 'Starting...';
+
+    fetch(`/content_extraction/process_document/${documentId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => {
+        // Simulate progress (since backend is synchronous)
+        const fill = document.getElementById(`progress-fill-${documentId}`);
+        const status = document.getElementById(`progress-status-${documentId}`);
+        if (fill) fill.style.width = '60%';
+        if (status) status.textContent = 'Extracting...';
+        return response.json();
+    })
+    .then(data => {
+        const fill = document.getElementById(`progress-fill-${documentId}`);
+        const status = document.getElementById(`progress-status-${documentId}`);
+        if (fill) fill.style.width = '100%';
+        if (status) status.textContent = data.success ? 'Completed!' : 'Failed';
+        if (data.success) {
+            showAlert('success', data.message);
+            setTimeout(() => { location.reload(); }, 1500);
+        } else {
+            showAlert('danger', 'Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        const fill = document.getElementById(`progress-fill-${documentId}`);
+        const status = document.getElementById(`progress-status-${documentId}`);
+        if (fill) fill.style.width = '100%';
+        if (status) status.textContent = 'Error';
+        console.error('Error:', error);
+        showAlert('danger', 'Error processing document: ' + error.message);
+    });
+}
+
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    selectedDocuments.clear();
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            selectedDocuments.add(parseInt(checkbox.dataset.documentId));
+        }
+    });
+    
+    const selectionCount = selectedDocuments.size;
+    document.getElementById('selectionCount').textContent = selectionCount;
+    document.getElementById('bulkExtractBtn').disabled = selectionCount === 0;
+    
+    const bulkActions = document.getElementById('bulkActions');
+    if (selectionCount > 0) {
+        bulkActions.classList.add('show');
+    } else {
+        bulkActions.classList.remove('show');
+    }
+    
+    // Update master checkbox
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    const totalCheckboxes = checkboxes.length;
+    const checkedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (checkedCheckboxes === 0) {
+        masterCheckbox.checked = false;
+        masterCheckbox.indeterminate = false;
+    } else if (checkedCheckboxes === totalCheckboxes) {
+        masterCheckbox.checked = true;
+        masterCheckbox.indeterminate = false;
+    } else {
+        masterCheckbox.checked = false;
+        masterCheckbox.indeterminate = true;
+    }
+}
+
+function toggleMasterCheckbox() {
+    const masterCheckbox = document.getElementById('masterCheckbox');
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = masterCheckbox.checked;
+    });
+    
+    updateSelection();
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelection();
+}
+
+function clearSelection() {
+    const checkboxes = document.querySelectorAll('.document-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelection();
+}
+
+function processBulkDocuments() {
+    if (selectedDocuments.size === 0) {
+        showAlert('warning', 'Please select documents to process');
+        return;
+    }
+    
+    if (!confirm(`Process ${selectedDocuments.size} documents for content extraction?`)) {
+        return;
+    }
+    
+    isProcessing = true;
+    const documentIds = Array.from(selectedDocuments);
+    
+    // Show progress container
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const processingLog = document.getElementById('processingLog');
+    
+    progressContainer.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Starting bulk processing...';
+    processingLog.innerHTML = '';
+    
+    // Disable bulk actions
+    document.getElementById('bulkExtractBtn').disabled = true;
+    
+    // Process documents
+    fetch('/content_extraction/bulk_process', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            document_ids: documentIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            progressFill.style.width = '100%';
+            progressText.textContent = `Completed: ${data.summary.successful} successful, ${data.summary.failed} failed`;
+            
+            // Show results in log
+            data.results.forEach((result, index) => {
+                const logEntry = document.createElement('div');
+                logEntry.className = result.status === 'success' ? 'text-success' : 'text-danger';
+                logEntry.textContent = `Document ${result.document_id}: ${result.status === 'success' ? result.message : result.error}`;
+                processingLog.appendChild(logEntry);
+            });
+            
+            showAlert('success', data.message);
+            
+            // Clear selection and refresh page after delay
+            setTimeout(() => {
+                clearSelection();
+                location.reload();
+            }, 3000);
+            
+        } else {
+            progressText.textContent = 'Processing failed';
+            showAlert('danger', 'Bulk processing failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        progressText.textContent = 'Processing failed';
+        showAlert('danger', 'Error during bulk processing');
+    })
+    .finally(() => {
+        isProcessing = false;
+        document.getElementById('bulkExtractBtn').disabled = false;
+        
+        // Hide progress container after delay
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 5000);
+    });
+}
+
+function viewContent(contentId) {
+    window.open(`/content_extraction/view_content/${contentId}`, '_blank');
+}
+
+function showAlert(type, message) {
+    const alertsContainer = document.getElementById('alertsContainer');
+    const alertId = 'alert_' + Date.now();
+    
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
+            <strong>${type.charAt(0).toUpperCase() + type.slice(1)}:</strong> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    alertsContainer.insertAdjacentHTML('beforeend', alertHtml);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alertElement = document.getElementById(alertId);
+        if (alertElement) {
+            alertElement.remove();
+        }
+    }, 5000);
+}
+
+// Semantic search functionality (placeholder)
+function performSemanticSearch() {
+    const query = prompt('Enter your search query:');
+    if (query) {
+        showAlert('info', 'Semantic search feature coming soon!');
+    }
+}
+
+// Progress tracking for individual documents
+function trackDocumentProgress(documentId) {
+    // This would be used for real-time progress tracking
+    // Implementation depends on WebSocket or polling approach
+}
+</script>
+{% endblock %}
+</body>
+</html>
