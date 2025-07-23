@@ -33,6 +33,11 @@ ENV/
 *.db
 *.sqlite3
 
+# PDF Documents (prevent uploading downloaded assessment documents)
+*.pdf
+documents/*.pdf
+downloads/*.pdf
+
 # Logs
 *.log
 logs/

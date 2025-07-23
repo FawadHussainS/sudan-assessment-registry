@@ -2,106 +2,679 @@
 
 {% block title %}Document Registry - AI Needs Analysis{% endblock %}
 
+{% block extra_head %}
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Match content extraction styling */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 18px 16px;
+            border-radius: 6px;
+            border-left: 4px solid var(--ocha-blue);
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: transform 0.2s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ocha-blue);
+            display: block;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            line-height: 1.2;
+        }
+        
+        .dashboard-card {
+            background: #ffffff;
+            border-radius: 6px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--ocha-blue);
+        }
+        
+        .dashboard-card h3 {
+            color: var(--ocha-dark-blue);
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .table {
+            margin-bottom: 0;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead th {
+            background: var(--ocha-blue);
+            color: white;
+            font-weight: 600;
+            border-bottom: none;
+            padding: 12px;
+            text-align: left;
+            letter-spacing: 0.5px;
+        }
+        
+        .table tbody td {
+            vertical-align: middle;
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        .table tbody tr:hover {
+            background-color: var(--ocha-light-blue);
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 2px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .btn-primary {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--ocha-dark-blue);
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--ocha-blue);
+            border: 1px solid var(--ocha-blue);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--ocha-blue);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-success {
+            background: transparent;
+            color: var(--ocha-green);
+            border: 1px solid var(--ocha-green);
+        }
+        
+        .btn-outline-success:hover {
+            background: var(--ocha-green);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-info {
+            background: transparent;
+            color: #17a2b8;
+            border: 1px solid #17a2b8;
+        }
+        
+        .btn-outline-info:hover {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-secondary {
+            background: transparent;
+            color: #6c757d;
+            border: 1px solid #6c757d;
+        }
+        
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-success {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+            border: 1px solid #74b9ff;
+        }
+        
+        .status-completed, .status-downloaded {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #00b894;
+        }
+        
+        .status-extracted {
+            background: #e2e3f1;
+            color: #383d41;
+            border: 1px solid #6f42c1;
+        }
+        
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #e17055;
+        }
+        
+        .status-unavailable {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .file-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 3px;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+        
+        .file-meta {
+            font-size: 0.85em;
+            color: #6c757d;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 20px;
+        }
+        
+        .badge-info { 
+            background: var(--ocha-blue); 
+            color: white; 
+        }
+        .badge-success { 
+            background: var(--ocha-green); 
+            color: white; 
+        }
+        .badge-warning { 
+            background: #ffc107; 
+            color: #212529; 
+        }
+        .badge-gray {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .type-pdf {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .type-other {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 4em;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .d-flex { display: flex; }
+        .justify-content-between { justify-content: space-between; }
+        .justify-content-end { justify-content: flex-end; }
+        .align-items-center { align-items: center; }
+        .gap-2 { gap: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mb-4 { margin-bottom: 1.5rem; }
+        .text-muted { color: #6c757d; }
+        
+        .summary-preview {
+            max-width: 200px;
+            font-size: 0.9em;
+            line-height: 1.3;
+        }
+        
+        .keywords-cell {
+            max-width: 150px;
+        }
+        
+        .keyword-tag {
+            display: inline-block;
+            background: var(--ocha-light-blue);
+            color: var(--ocha-dark-blue);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            margin: 1px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        /* Modern button styling matching content extraction */
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin: 2px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .btn-primary {
+            background: var(--ocha-blue);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--ocha-dark-blue);
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn-outline-primary {
+            background: transparent;
+            color: var(--ocha-blue);
+            border: 1px solid var(--ocha-blue);
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--ocha-blue);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-success {
+            background: transparent;
+            color: var(--ocha-green);
+            border: 1px solid var(--ocha-green);
+        }
+        
+        .btn-outline-success:hover {
+            background: var(--ocha-green);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-outline-info {
+            background: transparent;
+            color: #17a2b8;
+            border: 1px solid #17a2b8;
+        }
+        
+        .btn-outline-info:hover {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-success {
+            background: var(--ocha-green);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .integration-badges {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+        
+        .integration-badge {
+            background: #f8f9fa;
+            color: #6c757d;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid #dee2e6;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+        
+        .integration-badge.extracted {
+            background: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+        
+        .integration-badge.metadata {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+        
+        .integration-badge.managed {
+            background: #e2e3f1;
+            color: #383d41;
+            border-color: #d1ecf1;
+        }
+        
+        .integration-badge i {
+            font-size: 0.8em;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumb %}
+<div class="breadcrumb">
+    <a href="{{ url_for('main.index') }}">Home</a> / <a href="{{ url_for('document_registry.registry') }}">Document Registry</a>
+</div>
+{% endblock %}
+
 {% block page_title %}Document Registry{% endblock %}
 {% block page_subtitle %}Track and manage downloaded documents with AI processing status{% endblock %}
 
 {% block content %}
-<div class="dashboard-card">
-    <h3>📊 Registry Statistics</h3>
-    <div class="stat-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total_downloads }}</div>
-            <div class="stat-label">Total Downloads</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.total_registry_entries }}</div>
-            <div class="stat-label">Registry Entries</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.pending_processing }}</div>
-            <div class="stat-label">Pending AI Processing</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.processed }}</div>
-            <div class="stat-label">Processed</div>
-        </div>
+<!-- Quick Actions -->
+<div class="d-flex justify-content-end align-items-center mb-3 gap-2">
+    <div>
+        <small id="lastUpdated" class="text-muted">Last updated: <span id="lastUpdatedTime">Loading...</span></small>
+    </div>
+    <button id="refreshBtn" class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+        <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+    <a href="{{ url_for('download_rw.download_documents') }}" class="btn btn-outline-info btn-sm">
+        <i class="fas fa-download"></i> Download More
+    </a>
+    <a href="{{ url_for('content_extraction.extraction') }}" class="btn btn-outline-success btn-sm">
+        <i class="fas fa-cogs"></i> Extract Content
+    </a>
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-home"></i> Dashboard
+    </a>
+</div>
+
+<!-- Registry Statistics -->
+<div class="stats-grid mb-4">
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.total_downloads }}</span>
+        <span class="stat-label"><i class="fas fa-download"></i> Total Downloads</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.total_registry_entries }}</span>
+        <span class="stat-label"><i class="fas fa-list"></i> Registry Entries</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.pending_processing }}</span>
+        <span class="stat-label"><i class="fas fa-clock"></i> Pending Processing</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ stats.processed }}</span>
+        <span class="stat-label"><i class="fas fa-check-circle"></i> Processed</span>
     </div>
 </div>
 
+<!-- Downloaded Documents -->
+{% if downloads %}
 <div class="dashboard-card">
-    <h3>📁 Downloaded Documents</h3>
-    <p>All documents downloaded from ReliefWeb with their current processing status.</p>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="fas fa-file-alt"></i> Downloaded Documents ({{ downloads|length }})</h3>
+        <div class="gap-2 d-flex">
+            <button class="btn btn-outline-info btn-sm" onclick="syncWithMetadata()">
+                <i class="fas fa-sync"></i> Sync with Metadata
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="extractAllDocuments()">
+                <i class="fas fa-cogs"></i> Extract All Content
+            </button>
+        </div>
+    </div>
     
-    {% if downloads %}
-    <div class="table-container">
-        <table class="data-table">
+    <div class="table-responsive">
+        <table class="table">
             <thead>
                 <tr>
-                    <th>Download ID</th>
+                    <th>ID</th>
+                    <th>Document</th>
                     <th>Assessment</th>
-                    <th>Filename</th>
-                    <th>Country</th>
-                    <th>Source</th>
-                    <th>File Size</th>
-                    <th>Download Date</th>
+                    <th>File Info</th>
                     <th>Status</th>
+                    <th title="Shows which modules have processed this document">Integration</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for download in downloads %}
                 <tr>
-                    <td>{{ download.id }}</td>
                     <td>
-                        <div class="title-cell">
-                            <strong>ID:</strong> {{ download.assessment_id }}<br>
-                            <small>{{ download.title[:60] }}{% if download.title|length > 60 %}...{% endif %}</small>
+                        <span class="badge badge-info">{{ download.id }}</span>
+                    </td>
+                    <td>
+                        <div class="file-info">
+                            <div class="file-name">
+                                <i class="fas fa-file-pdf"></i> {{ download.filename }}
+                            </div>
+                            <div class="file-meta">
+                                <small class="text-muted">
+                                    {% if download.mime_type %}
+                                        <i class="fas fa-tag"></i> {{ download.mime_type }}
+                                    {% endif %}
+                                </small>
+                            </div>
                         </div>
                     </td>
                     <td>
-                        <div class="filename-cell">
-                            {{ download.filename }}
-                            {% if download.mime_type %}
-                            <br><small class="text-muted">{{ download.mime_type }}</small>
-                            {% endif %}
+                        <div class="file-info">
+                            <div class="file-name">ID: {{ download.assessment_id }}</div>
+                            <div class="file-meta">
+                                <small class="text-muted">
+                                    {% if download.title %}
+                                        {{ download.title[:50] }}{% if download.title|length > 50 %}...{% endif %}
+                                    {% endif %}
+                                </small>
+                            </div>
                         </div>
                     </td>
-                    <td>{{ download.country or 'N/A' }}</td>
-                    <td>{{ download.source or 'N/A' }}</td>
                     <td>
-                        {% if download.file_size %}
-                            {% if download.file_size < 1024 %}
-                                {{ download.file_size }} B
-                            {% elif download.file_size < 1048576 %}
-                                {{ "%.1f"|format(download.file_size / 1024) }} KB
-                            {% else %}
-                                {{ "%.1f"|format(download.file_size / 1048576) }} MB
+                        <div class="file-meta">
+                            {% if download.file_size %}
+                                <i class="fas fa-hdd"></i> 
+                                {% if download.file_size < 1024 %}
+                                    {{ download.file_size }} B
+                                {% elif download.file_size < 1048576 %}
+                                    {{ "%.1f"|format(download.file_size / 1024) }} KB
+                                {% else %}
+                                    {{ "%.1f"|format(download.file_size / 1048576) }} MB
+                                {% endif %}
                             {% endif %}
-                        {% else %}
-                            N/A
-                        {% endif %}
+                            <br>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i>
+                                {% if download.download_date %}
+                                    {% if download.download_date is string %}
+                                        {{ download.download_date }}
+                                    {% else %}
+                                        {{ download.download_date.strftime('%Y-%m-%d %H:%M') }}
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </small>
+                        </div>
                     </td>
                     <td>
-                        {% if download.download_date %}
-                            {% if download.download_date.strftime is defined %}
-                                {{ download.download_date.strftime('%Y-%m-%d %H:%M') }}
-                            {% else %}
-                                {{ download.download_date }}
-                            {% endif %}
-                        {% else %}
-                            N/A
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="status-badge status-{{ download.download_status }}">
-                            {{ download.download_status.title() }}
+                        <span class="status-badge status-{{ download.download_status or 'downloaded' }}">
+                            <i class="fas fa-download"></i> Downloaded
                         </span>
+                        {% if download.is_extracted %}
+                            <br><span class="status-badge status-extracted" style="margin-top: 4px;">
+                                <i class="fas fa-cogs"></i> Content Extracted
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="integration-badges">
+                            {% if download.is_extracted %}
+                                <span class="integration-badge extracted">
+                                    <i class="fas fa-cogs"></i> Extracted
+                                </span>
+                            {% endif %}
+                            {% if download.has_metadata %}
+                                <span class="integration-badge metadata">
+                                    <i class="fas fa-database"></i> Metadata
+                                </span>
+                            {% endif %}
+                            {% if download.is_managed %}
+                                <span class="integration-badge managed">
+                                    <i class="fas fa-tasks"></i> Managed
+                                </span>
+                            {% endif %}
+                            {% if not download.is_extracted and not download.has_metadata and not download.is_managed %}
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i> Pending Processing
+                                </small>
+                            {% endif %}
+                        </div>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="{{ download.original_url }}" target="_blank" class="btn-small btn-info" title="View Original">🔗</a>
+                            {% if download.original_url %}
+                                <a href="{{ download.original_url }}" target="_blank" 
+                                   class="btn btn-outline-info btn-sm" title="View Original">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            {% endif %}
                             {% if download.file_path %}
-                            <button class="btn-small btn-success" onclick="viewFile('{{ download.id }}')" title="View File">👁️</button>
+                                <button class="btn btn-outline-success btn-sm" 
+                                        onclick="viewFile('{{ download.id }}')" title="View File">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            {% endif %}
+                            {% if not download.is_extracted %}
+                                <button class="btn btn-outline-primary btn-sm" 
+                                        onclick="extractDocument('{{ download.id }}')" title="Extract Content">
+                                    <i class="fas fa-cogs"></i>
+                                </button>
                             {% endif %}
                         </div>
                     </td>
@@ -110,13 +683,19 @@
             </tbody>
         </table>
     </div>
-    {% else %}
-    <div class="empty-state">
-        <p>No documents have been downloaded yet.</p>
-        <a href="{{ url_for('download_rw.download_documents') }}" class="btn-primary">📥 Start Downloading Documents</a>
-    </div>
-    {% endif %}
 </div>
+{% else %}
+<div class="dashboard-card">
+    <div class="empty-state">
+        <i class="fas fa-file-alt"></i>
+        <h4>No Documents Downloaded</h4>
+        <p class="text-muted">No documents have been downloaded yet for processing.</p>
+        <a href="{{ url_for('download_rw.download_documents') }}" class="btn btn-primary">
+            <i class="fas fa-download"></i> Download Documents
+        </a>
+    </div>
+</div>
+{% endif %}
 
 <div class="dashboard-card">
     <h3>🤖 AI Processing Registry</h3>
@@ -296,37 +875,6 @@
     margin: 1px;
 }
 
-.action-buttons {
-    display: flex;
-    gap: 5px;
-    flex-wrap: wrap;
-}
-
-.btn-small {
-    padding: 4px 8px;
-    border: none;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.8em;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-info {
-    background: #17a2b8;
-    color: white;
-}
-
-.btn-success {
-    background: #28a745;
-    color: white;
-}
-
-.btn-primary {
-    background: var(--ocha-blue);
-    color: white;
-}
-
 .empty-state {
     text-align: center;
     padding: 40px 20px;
@@ -342,21 +890,241 @@
 </style>
 
 <script>
-function viewFile(downloadId) {
-    // TODO: Implement file viewing functionality
-    alert('File viewing functionality will be implemented in future updates.');
-}
-
-function processDocument(registryId) {
-    if (confirm('Start AI processing for this document? This may take a few minutes.')) {
-        // TODO: Implement AI processing functionality
-        alert('AI processing functionality will be implemented in future updates.');
+    // Stats auto-refresh
+    function refreshStats() {
+        fetch('/api/registry-stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.total !== undefined) {
+                    document.querySelector('.stats-grid .stat-card:nth-child(1) .stat-number').textContent = data.total;
+                }
+                if (data.extracted !== undefined) {
+                    document.querySelector('.stats-grid .stat-card:nth-child(2) .stat-number').textContent = data.extracted;
+                }
+                if (data.pending !== undefined) {
+                    document.querySelector('.stats-grid .stat-card:nth-child(3) .stat-number').textContent = Math.max(0, data.pending);
+                }
+                if (data.errors !== undefined) {
+                    document.querySelector('.stats-grid .stat-card:nth-child(4) .stat-number').textContent = data.errors;
+                }
+            })
+            .catch(error => console.error('Error refreshing stats:', error));
     }
-}
 
-function viewSummary(registryId) {
-    // TODO: Implement summary viewing modal
-    alert('Summary viewing functionality will be implemented in future updates.');
-}
+    // Module navigation functions
+    function navigateToDownload() {
+        window.location.href = "{{ url_for('download_rw.download_documents') }}";
+    }
+
+    function navigateToExtraction() {
+        window.location.href = "{{ url_for('content_extraction.extraction') }}";
+    }
+
+    function navigateToMetadata() {
+        window.location.href = "{{ url_for('metadata.view_metadata') }}";
+    }
+
+    function navigateToManage() {
+        window.location.href = "{{ url_for('manage.manage_database') }}";
+    }
+
+    // Sync and extraction functions
+    function syncWithMetadata() {
+        if (confirm('This will sync downloaded documents with the metadata system. Continue?')) {
+            showLoading('Syncing with metadata...');
+            
+            fetch('/api/sync-metadata', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showSuccess(`Sync completed. ${data.synced_count} documents synced.`);
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showError(data.error || 'Sync failed.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('Error during sync: ' + error.message);
+            });
+        }
+    }
+
+    function extractAllDocuments() {
+        if (confirm('This will extract content from all downloaded documents. This may take some time. Continue?')) {
+            showLoading('Starting content extraction for all documents...');
+            
+            fetch('/api/extract-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.success) {
+                    showSuccess(`Extraction started for ${data.count} documents.`);
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showError(data.error || 'Extraction failed to start.');
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showError('Error starting extraction: ' + error.message);
+            });
+        }
+    }
+
+    function extractDocument(documentId) {
+        showLoading('Extracting content...');
+        
+        fetch(`/api/extract-document/${documentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            if (data.success) {
+                showSuccess('Content extraction completed successfully.');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showError(data.error || 'Extraction failed.');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showError('Error during extraction: ' + error.message);
+        });
+    }
+
+    function viewFile(documentId) {
+        window.open(`/api/view-document/${documentId}`, '_blank');
+    }
+
+    // Utility functions for UI feedback
+    function showLoading(message = 'Processing...') {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loading-indicator';
+        loadingDiv.className = 'loading-overlay';
+        loadingDiv.innerHTML = `
+            <div class="loading-content">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>${message}</p>
+            </div>
+        `;
+        document.body.appendChild(loadingDiv);
+    }
+
+    function hideLoading() {
+        const loadingDiv = document.getElementById('loading-indicator');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    function showSuccess(message) {
+        showAlert(message, 'success');
+    }
+
+    function showError(message) {
+        showAlert(message, 'error');
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Auto-refresh stats every 30 seconds
+    setInterval(refreshStats, 30000);
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Document Registry initialized');
+    });
 </script>
+
+<style>
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    }
+    
+    .loading-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+    
+    .loading-content i {
+        font-size: 2rem;
+        color: #0072ce;
+        margin-bottom: 15px;
+    }
+    
+    .alert {
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .alert-success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+    }
+    
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    
+    .btn-close:hover {
+        opacity: 1;
+    }
+</style>
 {% endblock %}

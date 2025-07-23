@@ -592,7 +592,7 @@ def record_document_download(db_path, assessment_id, filename, original_url, fil
         return None
 
 def get_document_downloads(db_path, assessment_id=None):
-    """Get document downloads, optionally filtered by assessment ID"""
+    """Get document downloads with integration status flags"""
     try:
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
@@ -600,28 +600,39 @@ def get_document_downloads(db_path, assessment_id=None):
         
         if assessment_id:
             c.execute("""
-                SELECT d.*, a.title, a.country, a.source 
+                SELECT d.*, a.title, a.country, a.source,
+                       CASE WHEN dc.document_id IS NOT NULL THEN 1 ELSE 0 END as is_extracted,
+                       CASE WHEN dr.download_id IS NOT NULL THEN 1 ELSE 0 END as is_managed
                 FROM document_downloads d
                 JOIN assessments a ON d.assessment_id = a.id
+                LEFT JOIN document_content dc ON d.id = dc.document_id
+                LEFT JOIN document_registry dr ON d.id = dr.download_id
                 WHERE d.assessment_id = ?
                 ORDER BY d.download_date DESC
             """, (assessment_id,))
         else:
             c.execute("""
-                SELECT d.*, a.title, a.country, a.source 
+                SELECT d.*, a.title, a.country, a.source,
+                       CASE WHEN dc.document_id IS NOT NULL THEN 1 ELSE 0 END as is_extracted,
+                       CASE WHEN dr.download_id IS NOT NULL THEN 1 ELSE 0 END as is_managed
                 FROM document_downloads d
                 JOIN assessments a ON d.assessment_id = a.id
+                LEFT JOIN document_content dc ON d.id = dc.document_id
+                LEFT JOIN document_registry dr ON d.id = dr.download_id
                 ORDER BY d.download_date DESC
             """)
         
         rows = c.fetchall()
         conn.close()
         
-        # Parse datetime fields
+        # Parse datetime fields and convert flags to boolean
         result = []
         for row in rows:
             row_dict = dict(row)
             row_dict['download_date'] = parse_datetime(row_dict.get('download_date'))
+            row_dict['is_extracted'] = bool(row_dict.get('is_extracted', 0))
+            row_dict['has_metadata'] = False  # Set to False since assessment_metadata table doesn't exist
+            row_dict['is_managed'] = bool(row_dict.get('is_managed', 0))
             result.append(row_dict)
         
         return result
