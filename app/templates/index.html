@@ -908,14 +908,16 @@
                 </div>
             `;
             
-            // FIXED: Use correct blueprint endpoint
-            fetch(`{{ url_for('manage.get_record_details', record_id=0) }}`.replace('0', recordId))
+            // FIXED: Create the correct endpoint URL for record details
+            const recordUrl = '/api/record/' + recordId;
+            
+            fetch(recordUrl)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
                         modalBody.innerHTML = `
-                            <div class="alert-enhanced alert-enhanced-error">
-                                <i class="alert-icon-enhanced fas fa-exclamation-triangle"></i>
+                            <div class="alert-info">
+                                <i class="fas fa-exclamation-triangle"></i>
                                 Error loading record: ${data.error}
                             </div>
                         `;
@@ -927,8 +929,8 @@
                 })
                 .catch(error => {
                     modalBody.innerHTML = `
-                        <div class="alert-enhanced alert-enhanced-error">
-                            <i class="alert-icon-enhanced fas fa-exclamation-triangle"></i>
+                        <div class="alert-info">
+                            <i class="fas fa-exclamation-triangle"></i>
                             Failed to load record details. Please try again.
                         </div>
                     `;

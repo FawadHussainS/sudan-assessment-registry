@@ -530,6 +530,21 @@
             .modal-content { width: 95%; margin: 5% auto; padding: 20px; }
             .table-controls { flex-direction: column; align-items: stretch; }
         }
+
+        /* Ensure nav bar matches standard OCHA style and is not overridden */
+        .nav {
+            background: var(--ocha-blue) !important;
+        }
+        .nav .nav-link, .nav .nav-link:visited, .nav .nav-link:active, .nav .nav-link:focus, .nav .nav-icon {
+            color: #fff !important;
+            background: transparent !important;
+            font-weight: normal;
+        }
+        .nav .nav-link:hover, .nav .nav-link.active {
+            color: #ffe082 !important;
+            background: transparent !important;
+            text-decoration: underline;
+        }
     </style>
 {% endblock %}
 
@@ -917,7 +932,7 @@
                 body: (row.dataset.body || '').toLowerCase(),
                 primaryCountry: (row.dataset.primaryCountry || '').toLowerCase(),
                 country: (row.dataset.country || '').toLowerCase(),
-                date: row.dataset.date || ''
+                date: row.dataset.date or ''
             };
             
             let visible = true;

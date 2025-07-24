@@ -217,59 +217,99 @@ def init_db(db_path):
         logger.error(f"Failed to initialize database: {str(e)}")
         raise
 
-def save_metadata(db_path, metadata):
-    """Save metadata to database with deduplication"""
-    if not metadata:
-        logger.warning("No metadata to save")
-        return 0
+def save_metadata(db_path, assessments):
+    """Save assessment metadata to database
     
+    Args:
+        db_path (str): Path to database file
+        assessments (list): List of assessment metadata dictionaries
+        
+    Returns:
+        int: Number of new records saved
+    """
     try:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         
         saved_count = 0
-        for meta in metadata:
+        
+        # Handle both single dict and list of dicts
+        if isinstance(assessments, dict):
+            assessments = [assessments]
+        elif not isinstance(assessments, list):
+            logger.error(f"Invalid assessments data type: {type(assessments)}")
+            return 0
+        
+        for meta in assessments:
             try:
-                # Check if report already exists
-                c.execute("SELECT id FROM assessments WHERE report_id = ?", (meta.get("report_id"),))
-                if c.fetchone():
-                    logger.info(f"Report {meta.get('report_id')} already exists, skipping")
+                # Validate that meta is a dictionary
+                if not isinstance(meta, dict):
+                    logger.error(f"Invalid metadata item type: {type(meta)}, expected dict")
                     continue
                 
-                # Process file_urls: convert to JSON string if it's a list
-                file_urls = meta.get('file_urls', [])
-                if isinstance(file_urls, list):
-                    file_urls = json.dumps(file_urls)
+                # Check if record already exists
+                report_id = meta.get("report_id")
+                if not report_id:
+                    logger.warning(f"Skipping record without report_id: {meta.get('title', 'Unknown')}")
+                    continue
                 
-                # Insert new record
-                c.execute("""
-                INSERT INTO assessments (
-                    report_id, title, body, body_html, country, date_created,
-                    disaster, disaster_type, file_info, format, language, origin,
-                    primary_country, redirects, source, status, theme, url, url_alias
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    meta.get("report_id"), meta.get("title"), meta.get("body"),
-                    meta.get("body_html"), meta.get("country"), meta.get("date_created"),
-                    meta.get("disaster"), meta.get("disaster_type"), meta.get("file_info"),
-                    meta.get("format"), meta.get("language"), meta.get("origin"),
-                    meta.get("primary_country"), meta.get("redirects"), meta.get("source"),
-                    meta.get("status"), meta.get("theme"), meta.get("url"), meta.get("url_alias")
-                ))
+                c.execute("SELECT id FROM assessments WHERE report_id = ?", (report_id,))
+                existing = c.fetchone()
+                
+                if existing:
+                    logger.debug(f"Record {report_id} already exists, skipping")
+                    continue
+                
+                # Prepare data for insertion
+                insert_data = {
+                    'report_id': report_id,
+                    'title': meta.get('title', ''),
+                    'date_created': meta.get('date_created', ''),
+                    'source': ', '.join(meta.get('source', [])) if isinstance(meta.get('source'), list) else str(meta.get('source', '')),
+                    'format': ', '.join(meta.get('format', [])) if isinstance(meta.get('format'), list) else str(meta.get('format', '')),
+                    'theme': ', '.join(meta.get('theme', [])) if isinstance(meta.get('theme'), list) else str(meta.get('theme', '')),
+                    'country': ', '.join(meta.get('country', [])) if isinstance(meta.get('country'), list) else str(meta.get('country', '')),
+                    'primary_country': meta.get('primary_country', ''),
+                    'language': ', '.join(meta.get('language', [])) if isinstance(meta.get('language'), list) else str(meta.get('language', '')),
+                    'status': meta.get('status', ''),
+                    'url': meta.get('url', ''),
+                    'url_alias': meta.get('url_alias', ''),
+                    'body': meta.get('body', ''),
+                    'body_html': meta.get('body_html', ''),
+                    'file_urls': ', '.join([f.get('url', '') for f in meta.get('file', []) if isinstance(f, dict)]) if meta.get('file') else '',
+                    'headline': meta.get('headline', ''),
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                # Insert the record
+                c.execute('''
+                    INSERT INTO assessments (
+                        report_id, title, date_created, source, format, theme, country, 
+                        primary_country, language, status, url, url_alias, body, body_html, 
+                        file_urls, headline, created_at
+                    ) VALUES (
+                        :report_id, :title, :date_created, :source, :format, :theme, :country,
+                        :primary_country, :language, :status, :url, :url_alias, :body, :body_html,
+                        :file_urls, :headline, :created_at
+                    )
+                ''', insert_data)
+                
                 saved_count += 1
+                logger.debug(f"✅ Saved record: {report_id}")
                 
             except Exception as e:
-                logger.error(f"Failed to save record {meta.get('report_id')}: {str(e)}")
+                logger.error(f"Failed to save record {meta.get('report_id', 'Unknown') if isinstance(meta, dict) else 'Invalid'}: {str(e)}")
                 continue
         
         conn.commit()
         conn.close()
-        logger.info(f"Saved {saved_count} new records to database")
+        
+        logger.info(f"Successfully saved {saved_count} new assessment records")
         return saved_count
         
     except Exception as e:
         logger.error(f"Database save operation failed: {str(e)}")
-        raise
+        return 0
 
 def get_all_metadata(db_path):
     """Retrieve all metadata from database"""

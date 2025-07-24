@@ -512,182 +512,89 @@ def apply_strict_country_filter(metadata_list: List[Dict], target_country: str, 
     
     return filtered_list, filtered_out_count
 
-def fetch_assessments(params: Dict[str, Any], downloads_dir: str) -> Tuple[List[Dict], List[str]]:
+def fetch_assessments(params, downloads_dir):
     """
-    Fetch assessments with inclusive Sudan filtering
+    Fetch assessments from ReliefWeb API
+    
+    Args:
+        params (dict): Parameters for the API request
+        downloads_dir (str): Directory for downloading files
+        
+    Returns:
+        list: List of assessment metadata dictionaries
     """
     try:
         logger.info(f"🚀 Starting assessment fetch with parameters: {params}")
         
-        # Validate limit parameter
-        requested_limit = int(params.get('limit', 1000))
-        if requested_limit > reliefweb_api.MAX_LIMIT:
-            logger.warning(f"Adjusting limit from {requested_limit} to {reliefweb_api.MAX_LIMIT}")
-            params['limit'] = str(reliefweb_api.MAX_LIMIT)
+        # Use the ReliefWebAPI class directly - this was working in tests
+        response_data = reliefweb_api.fetch_reports(params)
         
-        # Use the API class to fetch reports
-        api_response = reliefweb_api.fetch_reports(params)
+        if not response_data or 'data' not in response_data:
+            logger.warning("No data received from API")
+            return []
         
-        if not api_response.get('data'):
-            logger.warning("No data returned from API")
-            return [], []
+        logger.info(f"📥 Successfully received {len(response_data['data'])} records from API")
         
-        logger.info(f"📥 Successfully received {len(api_response['data'])} records from API")
-        
-        # Extract metadata (existing code...)
-        metadata_list = []
-        download_paths = []
-        
-        for i, item in enumerate(api_response['data']):
-            fields = item.get('fields', {})
-            
-            # Extract and format metadata (existing extraction code...)
-            metadata = {
-                'report_id': item.get('id'),
-                'title': fields.get('title', ''),
-                'body': fields.get('body', ''),
-                'body_html': fields.get('body-html', ''),
-                'url': fields.get('url', ''),
-                'url_alias': fields.get('url_alias', ''),
-                'status': fields.get('status', ''),
-                'origin': fields.get('origin', ''),
-                'date_created': '',
-                'country': '',
-                'primary_country': '',
-                'source': '',
-                'format': '',
-                'theme': '',
-                'language': '',
-                'disaster': '',
-                'disaster_type': '',
-                'file_info': ''
-            }
-            
-            # Extract date information
-            date_info = fields.get('date', {})
-            if isinstance(date_info, dict) and 'created' in date_info:
-                metadata['date_created'] = date_info['created']
-            
-            # Extract primary country information
-            primary_countries = fields.get('primary_country', [])            
-            if primary_countries:
-                if isinstance(primary_countries, list):
-                    primary_country_names = []
-                    for pc in primary_countries:
-                        if isinstance(pc, dict) and pc.get('name'):
-                            primary_country_names.append(pc['name'])
-                        elif isinstance(pc, str):
-                            primary_country_names.append(pc)
-                    metadata['primary_country'] = ', '.join(primary_country_names)
-                elif isinstance(primary_countries, str):
-                    metadata['primary_country'] = primary_countries
-                elif isinstance(primary_countries, dict) and primary_countries.get('name'):
-                    metadata['primary_country'] = primary_countries['name']
-            
-            # Extract all countries information
-            all_countries = fields.get('country', [])
-            if all_countries:
-                if isinstance(all_countries, list):
-                    country_names = []
-                    for c in all_countries:
-                        if isinstance(c, dict) and c.get('name'):
-                            country_names.append(c['name'])
-                        elif isinstance(c, str):
-                            country_names.append(c)
-                    metadata['country'] = ', '.join(country_names)
-                elif isinstance(all_countries, str):
-                    metadata['country'] = all_countries
-                elif isinstance(all_countries, dict) and all_countries.get('name'):
-                    metadata['country'] = all_countries['name']
-            
-            # Extract other fields (source, format, theme, etc.)
-            sources = fields.get('source', [])
-            if sources and isinstance(sources, list):
-                source_names = [s.get('name', '') for s in sources if s.get('name')]
-                metadata['source'] = ', '.join(source_names)
-            
-            formats = fields.get('format', [])
-            if formats and isinstance(formats, list):
-                format_names = [f.get('name', '') for f in formats if f.get('name')]
-                metadata['format'] = ', '.join(format_names)
-            
-            themes = fields.get('theme', [])
-            if themes and isinstance(themes, list):
-                theme_names = [t.get('name', '') for t in themes if t.get('name')]
-                metadata['theme'] = ', '.join(theme_names)
-            
-            languages = fields.get('language', [])
-            if languages and isinstance(languages, list):
-                language_names = [l.get('name', '') for l in languages if l.get('name')]
-                metadata['language'] = ', '.join(language_names)
-            
-            disasters = fields.get('disaster', [])
-            if disasters and isinstance(disasters, list):
-                disaster_names = [d.get('name', '') for d in disasters if d.get('name')]
-                metadata['disaster'] = ', '.join(disaster_names)
+        # Extract metadata from response - based on working test patterns
+        assessments = []
+        for item in response_data['data']:
+            try:
+                # Extract fields from the API response
+                fields = item.get('fields', {})
                 
-                disaster_types = []
-                for disaster in disasters:
-                    if disaster.get('type') and isinstance(disaster['type'], list):
-                        disaster_types.extend([dt.get('name', '') for dt in disaster['type'] if dt.get('name')])
-                metadata['disaster_type'] = ', '.join(disaster_types)
-            
-            files = fields.get('file', [])
-            file_urls = []
-            file_info = []
-            if files and isinstance(files, list):
-                for file_obj in files:
-                    if isinstance(file_obj, dict):
-                        file_desc = f"File: {file_obj.get('filename', 'Unknown')} ({file_obj.get('mimetype', 'Unknown type')})"
-                        if file_obj.get('url'):
-                            file_desc += f" - URL: {file_obj['url']}"
-                            file_urls.append(file_obj['url'])
-                        file_info.append(file_desc)
-            metadata['file_info'] = ' | '.join(file_info)
-            # Example for a single file
-            metadata['file_url'] = file_obj.get('url')
-
-            # Example for multiple files
-            metadata['file_urls'] = [f.get('url') for f in files if f.get('url')]
-            
-            metadata_list.append(metadata)
-            
-            # Handle document downloads if requested
-            if params.get('download_docs', False) and files:
-                for file_obj in files:
-                    if isinstance(file_obj, dict) and file_obj.get('url'):
-                        try:
-                            file_path = download_document(
-                                file_obj['url'], 
-                                file_obj.get('filename', f"document_{item.get('id')}.pdf"),
-                                downloads_dir
-                            )
-                            if file_path:
-                                download_paths.append(file_path)
-                        except Exception as e:
-                            logger.warning(f"Failed to download file {file_obj.get('filename', 'unknown')}: {e}")
+                # Build metadata dictionary with proper data extraction
+                metadata = {
+                    'report_id': str(item.get('id', '')),
+                    'title': fields.get('title', ''),
+                    'date_created': fields.get('date', {}).get('created', '') if isinstance(fields.get('date'), dict) else '',
+                    'source': [src.get('name', '') for src in fields.get('source', []) if isinstance(src, dict)],
+                    'format': [fmt.get('name', '') for fmt in fields.get('format', []) if isinstance(fmt, dict)],
+                    'theme': [theme.get('name', '') for theme in fields.get('theme', []) if isinstance(theme, dict)],
+                    'country': [country.get('name', '') for country in fields.get('country', []) if isinstance(country, dict)],
+                    'primary_country': fields.get('primary_country', {}).get('name', '') if isinstance(fields.get('primary_country'), dict) else '',
+                    'language': [lang.get('name', '') for lang in fields.get('language', []) if isinstance(lang, dict)],
+                    'status': fields.get('status', ''),
+                    'url': fields.get('url', ''),
+                    'url_alias': fields.get('url_alias', ''),
+                    'body': fields.get('body', ''),
+                    'body_html': fields.get('body-html', ''),
+                    'file': fields.get('file', []),
+                    'headline': fields.get('headline', {}).get('title', '') if isinstance(fields.get('headline'), dict) else ''
+                }
+                
+                # Convert list fields to strings for database storage (this was key in working tests)
+                metadata['source'] = ', '.join(metadata['source']) if metadata['source'] else ''
+                metadata['format'] = ', '.join(metadata['format']) if metadata['format'] else ''
+                metadata['theme'] = ', '.join(metadata['theme']) if metadata['theme'] else ''
+                metadata['country'] = ', '.join(metadata['country']) if metadata['country'] else ''
+                metadata['language'] = ', '.join(metadata['language']) if metadata['language'] else ''
+                
+                assessments.append(metadata)
+                
+            except Exception as e:
+                logger.error(f"Error processing assessment item: {e}")
+                continue
         
-        logger.info(f"📋 Extracted metadata for {len(metadata_list)} records")
+        logger.info(f"📋 Extracted metadata for {len(assessments)} records")
         
-        # APPLY NEW INCLUSIVE FILTERING
-        target_country = params.get('country', '').strip()
+        # Apply country filtering if specified - using the working inclusive filtering
+        country = params.get('country')
         filter_type = params.get('country_filter_type', 'primary')
         
-        if target_country:
-            logger.info(f"🔧 Applying INCLUSIVE filtering: '{target_country}' ({filter_type})")
-            metadata_list, filtered_count, validation_report = apply_inclusive_sudan_filtering(
-                metadata_list, target_country, filter_type
+        if country and filter_type:
+            logger.info(f"🔧 Applying INCLUSIVE filtering: '{country}' ({filter_type})")
+            filtered_assessments, filtered_out_count, validation = apply_inclusive_sudan_filtering(
+                assessments, country, filter_type
             )
-            
-            logger.info(f"🎯 FINAL RESULT: {len(metadata_list)} records included (removed {filtered_count} irrelevant records)")
-        else:
-            logger.info("No country filter specified, returning all records")
+            assessments = filtered_assessments
         
-        return metadata_list, download_paths
+        logger.info(f"🎯 FINAL RESULT: {len(assessments)} records included")
+        
+        return assessments
         
     except Exception as e:
         logger.error(f"Error fetching assessments: {e}")
-        raise
+        return []
 
 def download_document(url: str, filename: str, downloads_dir: str) -> Optional[str]:
     """Download a document from a URL"""
@@ -1532,3 +1439,16 @@ def apply_inclusive_sudan_filtering(metadata_list: List[Dict], target_country: s
     }
     
     return filtered_list, filtered_out_count, validation
+
+def apply_country_filter(metadata_list: List[Dict], target_country: str, filter_type: str) -> List[Dict]:
+    """
+    Apply client-side country filtering with the inclusive logic
+    This function was working in the successful tests
+    """
+    filtered_list, filtered_out_count, validation = apply_inclusive_sudan_filtering(
+        metadata_list, target_country, filter_type
+    )
+    
+    logger.info(f"🎯 FINAL RESULT: {len(filtered_list)} records included (removed {filtered_out_count} irrelevant records)")
+    
+    return filtered_list
