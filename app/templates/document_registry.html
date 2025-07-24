@@ -273,23 +273,6 @@
             min-width: 20px;
         }
         
-        .badge-info { 
-            background: var(--ocha-blue); 
-            color: white; 
-        }
-        .badge-success { 
-            background: var(--ocha-green); 
-            color: white; 
-        }
-        .badge-warning { 
-            background: #ffc107; 
-            color: #212529; 
-        }
-        .badge-gray {
-            background: #6c757d;
-            color: white;
-        }
-        
         .type-badge {
             display: inline-block;
             padding: 4px 8px;
@@ -773,10 +756,10 @@
                     <td>
                         <div class="action-buttons">
                             {% if entry.processing_status == 'pending' %}
-                            <button class="btn-small btn-primary" onclick="processDocument('{{ entry.id }}')" title="Process with AI">🤖</button>
+                            <button class="btn btn-small btn-primary" onclick="processDocument('{{ entry.id }}')" title="Process with AI">🤖</button>
                             {% endif %}
                             {% if entry.ai_summary %}
-                            <button class="btn-small btn-info" onclick="viewSummary('{{ entry.id }}')" title="View Full Summary">📄</button>
+                            <button class="btn btn-small btn-outline-info" onclick="viewSummary('{{ entry.id }}')" title="View Full Summary">📄</button>
                             {% endif %}
                         </div>
                     </td>

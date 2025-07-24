@@ -3,67 +3,58 @@
 {% block title %}Database Management - OCHA Registry{% endblock %}
 
 {% block extra_head %}
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Management page specific styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/manage.css') }}">
     <style>
-        .btn {
-            background-color: var(--ocha-blue);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 14px;
-            transition: background-color 0.3s;
-        }
-        .btn:hover { background-color: var(--ocha-dark-blue); }
-        .btn-sm { padding: 6px 12px; font-size: 12px; margin-right: 6px; }
-        .btn-danger { background-color: var(--ocha-red); }
-        .btn-danger:hover { background-color: #c82333; }
-        .btn-secondary { background-color: var(--ocha-gray); }
-        .btn-secondary:hover { background-color: #545b62; }
-        
         /* Enhanced dropdown styles */
         .form-select {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--ocha-border);
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid var(--ocha-border);
+            border-radius: 8px;
             background-color: white;
             font-size: 14px;
             color: var(--text-primary);
             appearance: none;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-            background-position: right 8px center;
+            background-position: right 12px center;
             background-repeat: no-repeat;
             background-size: 16px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .form-select:focus {
             outline: none;
             border-color: var(--ocha-blue);
-            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15), 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
         }
         
         /* Enhanced search functionality styles */
         .search-highlight {
-            background-color: #fff3cd;
+            background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
             border: 1px solid #ffeaa7;
-            padding: 2px 4px;
-            border-radius: 3px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         
         .filter-active {
             background-color: var(--ocha-light-blue) !important;
             border-color: var(--ocha-blue) !important;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15) !important;
         }
         
         .no-results {
             text-align: center;
-            padding: 20px;
-            color: var(--text-secondary);
+            padding: 24px;
+            color: var(--ocha-dark-blue);
             font-style: italic;
+            opacity: 0.8;
         }
         
         .dropdown-container {
@@ -77,10 +68,19 @@
         
         .dropdown-search input {
             width: 100%;
-            padding: 8px 32px 8px 12px;
-            border: 1px solid var(--ocha-border);
-            border-radius: 4px;
+            padding: 10px 36px 10px 12px;
+            border: 2px solid var(--ocha-border);
+            border-radius: 6px;
             font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .dropdown-search input:focus {
+            outline: none;
+            border-color: var(--ocha-blue);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+            transform: translateY(-1px);
         }
         
         .dropdown-search .search-icon {
@@ -99,9 +99,9 @@
         
         .dropdown-toggle {
             width: 100%;
-            padding: 8px 32px 8px 12px;
-            border: 1px solid var(--ocha-border);
-            border-radius: 4px;
+            padding: 12px 36px 12px 12px;
+            border: 2px solid var(--ocha-border);
+            border-radius: 8px;
             background-color: white;
             font-size: 14px;
             color: var(--text-primary);
@@ -110,18 +110,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 38px;
+            min-height: 42px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         
         .dropdown-toggle:focus {
             outline: none;
             border-color: var(--ocha-blue);
-            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15), 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
         }
         
         .dropdown-toggle.has-selection {
             border-color: var(--ocha-blue);
-            background-color: var(--ocha-light-blue);
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
         }
         
         .dropdown-arrow {
@@ -138,14 +141,14 @@
             left: 0;
             right: 0;
             background: white;
-            border: 1px solid var(--ocha-border);
+            border: 2px solid var(--ocha-border);
             border-top: none;
-            border-radius: 0 0 4px 4px;
-            max-height: 250px;
+            border-radius: 0 0 8px 8px;
+            max-height: 280px;
             overflow-y: auto;
             z-index: 1000;
             display: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         
         .dropdown-menu.show {
@@ -153,22 +156,24 @@
         }
         
         .dropdown-item {
-            padding: 8px 12px;
+            padding: 10px 15px;
             cursor: pointer;
-            border-bottom: 1px solid #f1f3f4;
-            transition: background-color 0.2s;
+            border-bottom: 1px solid rgba(0, 106, 182, 0.1);
+            transition: all 0.2s ease;
             color: var(--text-primary);
             font-size: 14px;
         }
         
         .dropdown-item:hover {
-            background-color: var(--ocha-light-blue);
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
             color: var(--ocha-dark-blue);
+            transform: translateX(2px);
         }
         
         .dropdown-item.selected {
-            background-color: var(--ocha-blue);
+            background: linear-gradient(135deg, var(--ocha-blue) 0%, var(--ocha-dark-blue) 100%);
             color: white;
+            font-weight: 500;
         }
         
         .dropdown-item:last-child {
@@ -176,20 +181,24 @@
         }
         
         .dropdown-item.no-results {
-            color: var(--text-secondary);
+            color: var(--ocha-dark-blue);
             font-style: italic;
             text-align: center;
             cursor: default;
+            opacity: 0.7;
         }
         
         .dropdown-item.no-results:hover {
             background-color: transparent;
+            transform: none;
         }
         
         .country-count {
-            font-size: 12px;
-            color: var(--text-secondary);
+            font-size: 11px;
+            color: var(--ocha-dark-blue);
             margin-left: auto;
+            opacity: 0.7;
+            font-weight: 500;
         }
         
         .multiple-selection {
@@ -200,19 +209,207 @@
         }
         
         .selection-tag {
-            background: var(--ocha-blue);
+            background: linear-gradient(135deg, var(--ocha-blue) 0%, var(--ocha-dark-blue) 100%);
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 4px 10px;
+            border-radius: 14px;
             font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .selection-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
         }
         
         .selection-tag .remove {
             cursor: pointer;
             font-weight: bold;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.2s ease;
+        }
+        
+        .selection-tag .remove:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Standardized button styles from metadata template */
+        .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            line-height: 1.2;
+        }
+        
+        .btn-sm i {
+            font-size: 0.75rem;
+        }
+        
+        .d-flex {
+            display: flex;
+        }
+        
+        .gap-1 {
+            gap: 0.25rem;
+        }
+        
+        .gap-2 {
+            gap: 0.5rem;
+        }
+        
+        .align-items-center {
+            align-items: center;
+        }
+        
+        .justify-content-end {
+            justify-content: flex-end;
+        }
+        
+        .justify-content-between {
+            justify-content: space-between;
+        }
+        
+        .mb-3 {
+            margin-bottom: 1rem;
+        }
+        
+        .mt-3 {
+            margin-top: 1rem;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+        
+        .text-end {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+        }
+        
+        /* Ensure buttons have consistent height */
+        .btn-outline-primary, .btn-outline-info, .btn-outline-success, .btn-primary, .btn-danger, .btn-secondary {
+            min-height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-outline-primary {
+            color: var(--ocha-blue);
+            border-color: var(--ocha-blue);
+            background-color: transparent;
+        }
+        
+        .btn-outline-primary:hover {
+            color: white;
+            background-color: var(--ocha-blue);
+            border-color: var(--ocha-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-outline-info {
+            color: #17a2b8;
+            border-color: #17a2b8;
+            background-color: transparent;
+        }
+        
+        .btn-outline-info:hover {
+            color: white;
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-outline-success {
+            color: #28a745;
+            border-color: #28a745;
+            background-color: transparent;
+        }
+        
+        .btn-outline-success:hover {
+            color: white;
+            background-color: #28a745;
+            border-color: #28a745;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            color: white;
+            background-color: var(--ocha-blue);
+            border-color: var(--ocha-blue);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--ocha-dark-blue);
+            border-color: var(--ocha-dark-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-danger {
+            color: white;
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn-secondary {
+            color: white;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .min-width-150 {
+            min-width: 150px;
+        }
+        
+        .w-100 {
+            width: 100%;
+        }
+        
+        .hidden {
+            display: none;
         }
         
         /* Multi-select dropdown specific styles */
@@ -250,11 +447,13 @@
         }
         .bulk-actions {
             display: none;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 28px;
+            border: 2px solid rgba(0, 106, 182, 0.2);
             border-left: 4px solid var(--ocha-blue);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .bulk-actions.show { display: block; }
         .warning-text {
@@ -263,47 +462,57 @@
         }
         .records-container {
             background: white;
-            border-radius: 8px;
-            padding: 24px;
-            box-shadow: var(--shadow);
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .table-controls {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            gap: 16px;
+            margin-bottom: 20px;
+            gap: 20px;
         }
         .pagination-info {
-            color: var(--text-secondary);
+            color: var(--ocha-dark-blue);
             font-size: 14px;
+            opacity: 0.8;
         }
         .table-wrapper {
             overflow-x: auto;
             overflow-y: auto;
-            max-height: 600px;
+            max-height: 650px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            box-shadow: var(--shadow);
+            box-shadow: none;
         }
         th, td {
-            padding: 12px;
+            padding: 14px 12px;
             text-align: left;
-            border-bottom: 1px solid var(--ocha-border);
+            border-bottom: 1px solid rgba(0, 106, 182, 0.1);
         }
         th {
-            background: var(--ocha-blue);
+            background: linear-gradient(135deg, var(--ocha-blue) 0%, var(--ocha-dark-blue) 100%);
             color: white;
             font-weight: 600;
             position: sticky;
             top: 0;
             z-index: 10;
             letter-spacing: 0.5px;
+            font-size: 13px;
+            text-transform: uppercase;
         }
-        tr:nth-child(even) { background-color: #fafbfc; }
-        tr:hover { background-color: var(--ocha-light-blue); }
+        tr:nth-child(even) { 
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        tr:hover { 
+            background-color: var(--ocha-light-blue);
+            transition: background-color 0.2s ease;
+        }
         .record-actions { white-space: nowrap; }
         .record-title {
             max-width: 300px;
@@ -324,19 +533,26 @@
         .country-tags {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
+            gap: 6px;
         }
         .country-tag {
-            background: var(--ocha-light-blue);
-            padding: 2px 6px;
-            border-radius: 12px;
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
+            padding: 3px 8px;
+            border-radius: 14px;
             font-size: 10px;
             color: var(--ocha-dark-blue);
+            border: 1px solid rgba(0, 106, 182, 0.2);
+            transition: all 0.2s ease;
+        }
+        .country-tag:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .primary-country {
-            background: var(--ocha-blue);
+            background: linear-gradient(135deg, var(--ocha-blue) 0%, var(--ocha-dark-blue) 100%);
             color: white;
             font-weight: 600;
+            border-color: var(--ocha-blue);
         }
         .modal {
             display: none;
@@ -351,26 +567,30 @@
         .modal-content {
             background-color: white;
             margin: 2% auto;
-            padding: 30px;
-            border-radius: 8px;
+            padding: 0;
+            border-radius: 12px;
             width: 90%;
             max-width: 800px;
             max-height: 90vh;
-            overflow-y: auto;
+            overflow: hidden;
             position: relative;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
         .modal-header {
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--ocha-border);
+            margin-bottom: 0;
+            padding: 24px 30px;
+            border-bottom: 2px solid var(--ocha-blue);
         }
         .modal-header h3 {
             margin: 0;
-            color: var(--ocha-blue);
+            color: var(--ocha-dark-blue);
             font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
         .close {
             color: var(--text-secondary);
@@ -378,30 +598,47 @@
             font-weight: bold;
             cursor: pointer;
             line-height: 1;
+            transition: color 0.2s ease;
         }
         .close:hover { color: var(--ocha-red); }
+        
+        .modal-body {
+            padding: 24px 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
         .record-detail {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 15px;
+            align-items: start;
         }
         .record-detail strong {
-            color: var(--text-primary);
+            color: var(--ocha-dark-blue);
             display: inline-block;
-            min-width: 140px;
+            min-width: 160px;
+            font-weight: 600;
+            font-size: 13px;
         }
         .management-section {
             background: white;
-            border-radius: 8px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .search-section {
-            background: var(--ocha-light-blue);
+            background: linear-gradient(135deg, var(--ocha-light-blue) 0%, rgba(255,255,255,0.8) 100%);
+            border: 2px solid rgba(0, 106, 182, 0.2);
             border-left: 4px solid var(--ocha-blue);
         }
         .search-section h3 {
             color: var(--ocha-dark-blue);
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
         .form-row {
             display: grid;
@@ -426,21 +663,26 @@
         }
         .form-label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: var(--text-primary);
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--ocha-dark-blue);
+            font-size: 14px;
+            letter-spacing: 0.3px;
         }
         .form-control {
             width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--ocha-border);
-            border-radius: 4px;
+            padding: 12px;
+            border: 2px solid var(--ocha-border);
+            border-radius: 8px;
             font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .form-control:focus {
             outline: none;
             border-color: var(--ocha-blue);
-            box-shadow: 0 0 0 3px rgba(0, 123, 191, 0.1);
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15), 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
         }
         .search-input {
             position: relative;
@@ -529,21 +771,6 @@
             .stats-grid { grid-template-columns: 1fr; }
             .modal-content { width: 95%; margin: 5% auto; padding: 20px; }
             .table-controls { flex-direction: column; align-items: stretch; }
-        }
-
-        /* Ensure nav bar matches standard OCHA style and is not overridden */
-        .nav {
-            background: var(--ocha-blue) !important;
-        }
-        .nav .nav-link, .nav .nav-link:visited, .nav .nav-link:active, .nav .nav-link:focus, .nav .nav-icon {
-            color: #fff !important;
-            background: transparent !important;
-            font-weight: normal;
-        }
-        .nav .nav-link:hover, .nav .nav-link.active {
-            color: #ffe082 !important;
-            background: transparent !important;
-            text-decoration: underline;
         }
     </style>
 {% endblock %}
@@ -735,20 +962,34 @@
         
     <!-- Bulk Actions -->
     <div class="bulk-actions" id="bulkActions">
-        <h4>Bulk Actions (<span id="selectedCount">0</span> selected)</h4>
-        <button type="button" class="btn btn-danger" onclick="deleteSelected()">Delete Selected Records</button>
-        <button type="button" class="btn btn-secondary" onclick="clearSelection()">Clear Selection</button>
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <span class="selected-count" id="selectedCount">0 records selected</span>
+            </div>
+            <div class="col-md-8 text-end">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteSelected()">
+                    <i class="fas fa-trash"></i> Delete Selected Records
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
+            </div>
+        </div>
     </div>
         
     <!-- Records Table -->
     <div class="records-container">
         <div class="table-controls">
             <div class="pagination-info">
-                Showing <span id="currentCount">{{ data|length if data else 0 }}</span> of {{ data|length if data else 0 }} records
+                <i class="fas fa-list"></i> Showing <span id="currentCount">{{ data|length if data else 0 }}</span> of {{ data|length if data else 0 }} records
             </div>
-            <div>
-                <button type="button" class="btn btn-sm" onclick="selectAll()">Select All Visible</button>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="clearSelection()">Clear Selection</button>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAll()">
+                    <i class="fas fa-check-square"></i> Select All Visible
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                    <i class="fas fa-times"></i> Clear Selection
+                </button>
             </div>
         </div>
         <div class="table-wrapper">
@@ -836,8 +1077,12 @@
                 <!-- Record details will be populated here -->
             </div>
             <div style="margin-top: 20px; text-align: right;">
-                <button class="btn btn-danger" id="modalDeleteBtn" onclick="">Delete This Record</button>
-                <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+                <button class="btn btn-danger btn-sm" id="modalDeleteBtn" onclick="">
+                    <i class="fas fa-trash"></i> Delete This Record
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="closeModal()">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
@@ -1377,7 +1622,7 @@
     function updateBulkActions() {
         const selected = document.querySelectorAll('.record-checkbox:checked');
         const count = selected.length;
-        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('selectedCount').textContent = `${count} records selected`;
         document.getElementById('bulkActions').classList.toggle('show', count > 0);
         
         // Update select all checkbox

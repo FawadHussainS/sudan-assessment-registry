@@ -384,6 +384,300 @@ body {
     margin-right: 6px;
 }
 
+.btn-small {
+    padding: 4px 8px;
+    font-size: 11px;
+    border-radius: 3px;
+}
+
+/* Button Outline Variants */
+.btn-outline-primary {
+    background-color: transparent;
+    color: var(--ocha-blue);
+    border: 1px solid var(--ocha-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--ocha-blue);
+    color: white;
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    color: var(--ocha-gray);
+    border: 1px solid var(--ocha-gray);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--ocha-gray);
+    color: white;
+}
+
+.btn-outline-success {
+    background-color: transparent;
+    color: var(--ocha-green);
+    border: 1px solid var(--ocha-green);
+}
+
+.btn-outline-success:hover {
+    background-color: var(--ocha-green);
+    color: white;
+}
+
+.btn-outline-info {
+    background-color: transparent;
+    color: #17a2b8;
+    border: 1px solid #17a2b8;
+}
+
+.btn-outline-info:hover {
+    background-color: #17a2b8;
+    color: white;
+}
+
+/* Custom Button Variants */
+.btn-auto-refresh {
+    background-color: #6c757d;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-auto-refresh:hover {
+    background-color: #5a6268;
+}
+
+.btn-auto-refresh.active {
+    background-color: var(--ocha-green);
+}
+
+.back-button {
+    display: inline-block;
+    background-color: var(--ocha-gray);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    margin-bottom: 20px;
+}
+
+.back-button:hover {
+    background-color: #5a6268;
+    color: white;
+    text-decoration: none;
+}
+
+.btn-extract-toggle {
+    background: linear-gradient(135deg, var(--ocha-blue), var(--ocha-dark-blue));
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.btn-extract-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.btn-extract-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.btn-extract-toggle.expanded i {
+    transform: rotate(180deg);
+}
+
+.btn-view-all {
+    display: inline-block;
+    background-color: var(--ocha-blue);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    margin-top: 15px;
+    transition: background-color 0.2s;
+}
+
+.btn-view-all:hover {
+    background-color: var(--ocha-dark-blue);
+    color: white;
+    text-decoration: none;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--ocha-blue), var(--ocha-dark-blue));
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #999;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.btn-close:hover {
+    background-color: #f8f9fa;
+    color: #333;
+}
+
+/* Badge Styles */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-align: center;
+    min-width: 20px;
+    color: white;
+}
+
+.badge-info {
+    background-color: var(--ocha-blue);
+    color: white;
+}
+
+.badge-success {
+    background-color: var(--ocha-green);
+    color: white;
+}
+
+.badge-warning {
+    background-color: var(--ocha-orange);
+    color: white;
+}
+
+.badge-danger {
+    background-color: var(--ocha-red);
+    color: white;
+}
+
+.badge-gray {
+    background-color: var(--ocha-gray);
+    color: white;
+}
+
+.badge-country {
+    background-color: #e1f5fe;
+    color: #0277bd;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.badge-format {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.badge-source {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+/* Badge Variants for Metadata */
+.badge-country-secondary {
+    background-color: #e3eaf6;
+    color: #2c5282;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: 400;
+}
+
+.badge-organization {
+    background-color: #f8f9fa;
+    color: #495057;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: 500;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    display: inline-block;
+}
+
+.badge-format-orange {
+    background-color: #f7c59f;
+    color: #7a4f01;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+.badge-format-gray {
+    background-color: #eee;
+    color: #888;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7em;
+    font-weight: bold;
+}
+
+/* Utility Classes */
+.min-width-150 {
+    min-width: 150px !important;
+}
+
+.w-100 {
+    width: 100% !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
 /* Page Title */
 .page-header {
     margin-bottom: 30px;
@@ -502,6 +796,27 @@ input:focus, select:focus, textarea:focus {
     color: var(--text-primary); 
     font-size: 18px; 
     font-weight: 600;
+}
+
+/* Additional Card Variants */
+.info-card {
+    background: var(--ocha-light-blue);
+    border: 1px solid #b8daff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--ocha-blue);
+}
+
+.debug-info {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #6c757d;
 }
 
 .stat-grid { 

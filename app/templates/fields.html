@@ -110,22 +110,6 @@
                 grid-template-columns: 1fr;
             }
         }
-        
-        .back-link {
-            display: inline-block;
-            background-color: var(--ocha-blue);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 500;
-            margin-top: 20px;
-            transition: background-color 0.2s;
-        }
-        
-        .back-link:hover {
-            background-color: var(--ocha-dark-blue);
-        }
 
         .breadcrumb {
             font-size: 14px;
@@ -189,7 +173,7 @@
             <p>These fields can be used in API queries and are available in the extracted assessment data.</p>
         </div>
         
-        <a href="{{ url_for('main.index') }}" class="back-link">← Back to Home</a>
+        <a href="{{ url_for('main.index') }}" class="back-button">← Back to Home</a>
     </div>
 </body>
 </html>

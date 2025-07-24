@@ -12,13 +12,13 @@
     
     <form method="POST" action="{{ url_for('download_rw.bulk_download') }}" id="bulkDownloadForm">
         <div class="form-actions" style="margin-bottom: 20px;">
-            <button type="submit" class="btn-primary" id="downloadBtn" disabled>
+            <button type="submit" class="btn btn-primary" id="downloadBtn" disabled>
                 📥 Download Selected Documents
             </button>
-            <button type="button" class="btn-secondary" onclick="selectAll()">
+            <button type="button" class="btn btn-secondary" onclick="selectAll()">
                 ☑️ Select All
             </button>
-            <button type="button" class="btn-secondary" onclick="clearSelection()">
+            <button type="button" class="btn btn-secondary" onclick="clearSelection()">
                 ☐ Clear Selection
             </button>
         </div>
@@ -189,39 +189,6 @@
     display: flex;
     gap: 10px;
     align-items: center;
-}
-
-.btn-primary, .btn-secondary {
-    padding: 10px 20px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-block;
-}
-
-.btn-primary {
-    background: var(--ocha-blue);
-    color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background: var(--ocha-dark-blue);
-}
-
-.btn-primary:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-secondary:hover {
-    background: #5a6268;
 }
 </style>
 

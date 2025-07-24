@@ -22,7 +22,7 @@
             color: white;
         }
         .text-truncate-custom {
-            max-width: 300px;
+            max-width: 180px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -152,6 +152,21 @@
             background: #fff3e0;
             color: #ef6c00;
             border-color: #ffcc02;
+        }
+        
+        /* Theme badges - smaller text for better fit */
+        .recent-meta-badge.format {
+            font-size: 9px !important;
+            padding: 3px 6px;
+        }
+        
+        .recent-meta-badge.format .recent-meta-value {
+            font-size: 9px !important;
+            line-height: 1.1;
+        }
+        
+        .recent-meta-badge.format i {
+            font-size: 8px !important;
         }
         
         /* Table responsive improvements */
@@ -479,15 +494,15 @@
                 ({{ data|length }} records)
             </small>
         </div>
-        <button id="csvDownloadBtn" class="btn btn-outline-primary btn-sm download-btn" style="min-width: 150px;" onclick="downloadData('csv')">
+        <button id="csvDownloadBtn" class="btn btn-outline-primary btn-sm download-btn min-width-150" onclick="downloadData('csv')">
             <i class="fas fa-download"></i> <span class="btn-text">Download CSV</span>
-            <span class="badge" id="csvBadge" style="display: none;"></span>
+            <span class="badge hidden" id="csvBadge"></span>
         </button>
-        <button id="excelDownloadBtn" class="btn btn-outline-success btn-sm download-btn" style="min-width: 150px;" onclick="downloadData('excel')">
+        <button id="excelDownloadBtn" class="btn btn-outline-success btn-sm download-btn min-width-150" onclick="downloadData('excel')">
             <i class="fas fa-file-excel"></i> <span class="btn-text">Download Excel</span>
-            <span class="badge" id="excelBadge" style="display: none;"></span>
+            <span class="badge hidden" id="excelBadge"></span>
         </button>
-        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm" style="min-width: 150px;">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-sm min-width-150">
             <i class="fas fa-plus"></i> Extract New Records
         </a>
     </div>
@@ -572,13 +587,13 @@
                         <input type="checkbox" id="selectAllCheckbox" title="Select All">
                     </th>
                     <th width="4%">#</th>
-                    <th width="28%">Title</th>
-                    <th width="12%">Country</th>
-                    <th width="15%">Source</th>
-                    <th width="10%">Format</th>
+                    <th width="20%">Title</th>
+                    <th width="15%">Country</th>
+                    <th width="18%">Source</th>
+                    <th width="12%">Format</th>
                     <th width="10%">Date</th>
-                    <th width="8%">Theme</th>
-                    <th width="10%">Actions</th>
+                    <th width="10%">Theme</th>
+                    <th width="8%">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -607,7 +622,7 @@
                         </div>
                         {% if record.country and record.primary_country and record.country != record.primary_country %}
                             <br>
-                            <span class="recent-meta-badge country" style="background:#e3eaf6;color:#2c5282;font-weight:400;">
+                            <span class="badge-country-secondary">
                                 + {{ record.country[:30] }}{% if record.country|length > 30 %}...{% endif %}
                             </span>
                         {% endif %}
@@ -616,7 +631,7 @@
                         <div class="recent-meta-badge-group" title="{{ record.source }}">
                             {% if record.source %}
                                 {% for src in record.source.split(',') %}
-                                    <span class="recent-meta-badge organization" style="margin-right: 4px; margin-bottom: 4px;">
+                                    <span class="recent-meta-badge organization">
                                         <i class="fas fa-users"></i>
                                         <span class="recent-meta-value">
                                             {{ src.strip()[:30] }}{% if src.strip()|length > 30 %}...{% endif %}
@@ -650,7 +665,7 @@
                     <td>
                         {% if record.theme %}
                             {% for theme in record.theme.split(',') %}
-                                <span class="recent-meta-badge format" style="background:#f7c59f;color:#7a4f01;">
+                                <span class="recent-meta-badge format">
                                     <i class="fas fa-tag"></i>
                                     <span class="recent-meta-value">
                                         {{ theme.strip()[:20] }}{% if theme.strip()|length > 20 %}...{% endif %}
@@ -658,7 +673,7 @@
                                 </span>
                             {% endfor %}
                         {% else %}
-                            <span class="recent-meta-badge format" style="background:#eee;color:#888;">
+                            <span class="recent-meta-badge format">
                                 <i class="fas fa-tag"></i>
                                 <span class="recent-meta-value">N/A</span>
                             </span>
@@ -733,6 +748,7 @@
             setLastUpdated();
             setupBulkSelection();
             updateDownloadButtons();
+            formatAllDates(); // Format dates after page loads
         }, 100);
     });
 
@@ -748,6 +764,36 @@
         if (lastUpdatedElement) {
             lastUpdatedElement.textContent = formatted;
         }
+    }
+
+    // Date formatting function
+    function formatDate(dateString) {
+        if (!dateString || dateString === 'No Date') return 'No Date';
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            const day = date.getDate();
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            
+            return `${day} ${month} ${year}`;
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    // Format all dates on the page
+    function formatAllDates() {
+        const dateBadges = document.querySelectorAll('.recent-meta-badge.date .recent-meta-value');
+        dateBadges.forEach(badge => {
+            const originalDate = badge.textContent.trim();
+            badge.textContent = formatDate(originalDate);
+        });
     }
 
     function populateFilters() {
@@ -808,10 +854,11 @@
             // Theme
             const themeCell = row.cells[7]; // was cells[6]
             if (themeCell) {
-                const themeBadges = themeCell.querySelectorAll('.recent-meta-badge .recent-meta-value');
+                const themeBadges = themeCell.querySelectorAll('.recent-meta-badge.format .recent-meta-value');
                 themeBadges.forEach(badge => {
-                    if (badge.textContent.trim() !== 'N/A') {
-                        themes.add(badge.textContent.trim());
+                    const themeValue = badge.textContent.trim();
+                    if (themeValue && themeValue !== 'N/A') {
+                        themes.add(themeValue);
                     }
                 });
             }

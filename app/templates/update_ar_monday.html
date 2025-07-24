@@ -4,7 +4,15 @@
 {% block title %}Monday.com Integration - OCHA Registry{% endblock %}
 
 {% block extra_head %}
-    <!-- Add Font Awesome for icons -->
+    <!-- Add Font Awes            <a href="{{ url_for('metadata.view_metadata') }}" class="btn btn-outline-primary">
+                <i class="fas fa-table"></i> View All Records
+            </a>
+            <a href="{{ url_for('manage.manage_database') }}" class="btn btn-outline-primary">
+                <i class="fas fa-cogs"></i> Manage Database
+            </a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Dashboard
+            </a>cons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         .integration-section {
@@ -64,31 +72,6 @@
             color: var(--text-secondary);
         }
         
-        .btn-primary {
-            background: var(--ocha-blue);
-            border: 1px solid var(--ocha-blue);
-            color: white;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .btn-primary:hover {
-            background: var(--ocha-dark-blue);
-            border-color: var(--ocha-dark-blue);
-        }
-        
-        .btn-primary:disabled {
-            background: var(--ocha-gray);
-            border-color: var(--ocha-gray);
-            cursor: not-allowed;
-        }
-        
         .results-section {
             background: white;
             border-radius: 8px;
@@ -127,24 +110,6 @@
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid var(--ocha-border);
-        }
-        
-        .btn-outline-primary {
-            background: transparent;
-            border: 1px solid var(--ocha-blue);
-            color: var(--ocha-blue);
-            padding: 8px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            transition: all 0.3s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .btn-outline-primary:hover {
-            background: var(--ocha-blue);
-            color: white;
         }
         
         .monday-logo {
@@ -331,7 +296,7 @@
         <div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px; border-left: 4px solid #28a745;">
             <strong>Success!</strong> {{ results.stats.new_count }} new assessment records have been added to your database.
             <div style="margin-top: 10px;">
-                <a href="{{ url_for('metadata.view_metadata') }}" class="btn-outline-primary">
+                <a href="{{ url_for('metadata.view_metadata') }}" class="btn btn-outline-primary">
                     <i class="fas fa-eye"></i> View New Records
                 </a>
             </div>
